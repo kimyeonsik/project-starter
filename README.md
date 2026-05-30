@@ -76,11 +76,16 @@ Re-running is safe and idempotent.
 
 ### One-line health check (global scope)
 
+Works in both bash and zsh (uses `find` instead of unsafe globs):
+
 ```bash
-echo "Marker: $(grep -c "BEGIN project-starter" ~/.claude/CLAUDE.md 2>/dev/null || echo 0)" && \
-echo "Rules: $(ls ~/.claude/rules/{language,agent-teams,skill-activation}.md 2>/dev/null | wc -l | tr -d ' ')/3" && \
-echo "Stacks: $(ls ~/.claude/rules/stacks/*.md 2>/dev/null | wc -l | tr -d ' ')/5" && \
-echo "Skill: $(ls ~/.agents/skills/new-project-bootstrap/SKILL.md 2>/dev/null && echo OK || echo MISSING)"
+sh -c '
+M=$(grep -c "BEGIN project-starter" "$HOME/.claude/CLAUDE.md" 2>/dev/null || echo 0)
+R=$(ls "$HOME/.claude/rules/language.md" "$HOME/.claude/rules/agent-teams.md" "$HOME/.claude/rules/skill-activation.md" 2>/dev/null | wc -l | tr -d " ")
+S=$(find "$HOME/.claude/rules/stacks" -maxdepth 1 -name "*.md" 2>/dev/null | wc -l | tr -d " ")
+K=$([ -f "$HOME/.agents/skills/new-project-bootstrap/SKILL.md" ] && echo OK || echo MISSING)
+echo "Marker: $M"; echo "Rules: $R/3"; echo "Stacks: $S/5"; echo "Skill: $K"
+'
 ```
 
 Expected output:
@@ -88,23 +93,26 @@ Expected output:
 Marker: 1
 Rules: 3/3
 Stacks: 5/5
-Skill: /Users/<you>/.agents/skills/new-project-bootstrap/SKILL.md
-OK
+Skill: OK
 ```
 
-If `Marker: 2` or higher → duplicate-merge bug from older install; re-run `install.sh` to self-heal.
-If `Marker: 0` → managed block missing; re-run `install.sh`.
-If `Rules: 0/3` or `Skill: MISSING` → installer didn't finish; check the install log.
+Diagnosis:
+- `Marker: 0` → managed block missing; re-run `install.sh`
+- `Marker: 2` or higher → duplicate (older install bug); re-run `install.sh` to self-heal
+- `Rules: 0/3` or `Stacks: 0/5` or `Skill: MISSING` → installer didn't finish; re-run
 
 ### One-line health check (project scope)
 
 Run from the project root:
 
 ```bash
-echo "Marker: $(grep -c "BEGIN project-starter" CLAUDE.md 2>/dev/null || echo 0)" && \
-echo "Rules: $(ls .claude/rules/{language,agent-teams,skill-activation}.md 2>/dev/null | wc -l | tr -d ' ')/3" && \
-echo "Stacks: $(ls .claude/rules/stacks/*.md 2>/dev/null | wc -l | tr -d ' ')/5" && \
-echo "Skill: $(ls .claude/skills/new-project-bootstrap/SKILL.md 2>/dev/null && echo OK || echo MISSING)"
+sh -c '
+M=$(grep -c "BEGIN project-starter" ./CLAUDE.md 2>/dev/null || echo 0)
+R=$(ls ./.claude/rules/language.md ./.claude/rules/agent-teams.md ./.claude/rules/skill-activation.md 2>/dev/null | wc -l | tr -d " ")
+S=$(find ./.claude/rules/stacks -maxdepth 1 -name "*.md" 2>/dev/null | wc -l | tr -d " ")
+K=$([ -f ./.claude/skills/new-project-bootstrap/SKILL.md ] && echo OK || echo MISSING)
+echo "Marker: $M"; echo "Rules: $R/3"; echo "Stacks: $S/5"; echo "Skill: $K"
+'
 ```
 
 ### Verify import paths match scope
@@ -158,27 +166,48 @@ SCOPE=global bash ~/projects/project-starter/scripts/uninstall.sh
 SCOPE=global bash <(curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/uninstall.sh)
 ```
 
-### What gets removed
+### Default behavior: restore (revert to pre-install state)
+
+By default, `uninstall.sh` **restores files from the oldest backup** taken at install time. The idea is "undo = put it back the way it was."
+
+For each target:
+- **Has a backup** → restore from the oldest `*.backup-*` (= state before the very first install)
+- **No backup** → simply remove (the installer created it from scratch)
+
+Any manual edits you made to managed files after install will be overwritten by the restored backup.
+
+### What gets touched
 
 | Item | Scope=project | Scope=global |
 |---|---|---|
-| Rules | `./.claude/rules/` | `~/.claude/rules/` |
+| Rules | `./.claude/rules/{language,agent-teams,skill-activation}.md` | `~/.claude/rules/{language,agent-teams,skill-activation}.md` |
 | Stack rules | `./.claude/rules/stacks/` | `~/.claude/rules/stacks/` |
 | Bootstrap skill | `./.claude/skills/new-project-bootstrap/` | `~/.agents/skills/new-project-bootstrap/` |
-| Managed block in `CLAUDE.md` | `./CLAUDE.md` (file removed if it becomes empty) | `~/.claude/CLAUDE.md` (block stripped; file preserved if other content remains) |
+| `CLAUDE.md` | `./CLAUDE.md` (restored from oldest backup, or removed if empty after stripping managed block) | `~/.claude/CLAUDE.md` (restored from oldest backup, or managed block stripped if no backup) |
 
 ### What's preserved
 
-- All `*.backup-<timestamp>` files created during install (so you can revert mistakes)
-- Any content in target paths the installer didn't create
-- Your shell config, MCP server configs, other Claude Code settings
+- All `*.backup-<timestamp>` files (still on disk after restore, in case you want them — use `PURGE_BACKUPS=1` to delete)
+- Any unrelated content in target directories
+- Shell config, MCP server configs, other Claude Code settings
+
+### Legacy mode: NO_RESTORE (just remove the managed pieces)
+
+If you want the old behavior — just delete the installer's files and strip the managed block, without touching backups for restore:
+
+```bash
+NO_RESTORE=1 SCOPE=global bash ~/projects/project-starter/scripts/uninstall.sh
+```
 
 ### Complete teardown (everything including backups + cloned source)
 
 ```bash
-# 1. Uninstall and purge backups for each scope you used
+# 1. Uninstall (restores from backups) AND purge those backups afterward
 PURGE_BACKUPS=1 SCOPE=project bash ~/projects/project-starter/scripts/uninstall.sh
 PURGE_BACKUPS=1 SCOPE=global bash ~/projects/project-starter/scripts/uninstall.sh
+
+# Or skip restore entirely and just nuke everything:
+NO_RESTORE=1 PURGE_BACKUPS=1 SCOPE=global bash ~/projects/project-starter/scripts/uninstall.sh
 
 # 2. Remove the cloned source repo
 rm -rf ~/projects/project-starter
