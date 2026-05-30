@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # project-starter installer
 # Idempotent: safe to re-run. Backs up existing files before modification.
+#
+# Scopes:
+#   project (default) — installs into $PWD/.claude/ and $PWD/CLAUDE.md
+#   global            — installs into ~/.claude/ and ~/.agents/skills/
 
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-CLAUDE_DIR="${CLAUDE_DIR:-$HOME/.claude}"
-AGENTS_DIR="${AGENTS_DIR:-$HOME/.agents}"
-RULES_DIR="$CLAUDE_DIR/rules"
-SKILLS_DIR="$AGENTS_DIR/skills"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 
 # ---------- Helpers ----------
@@ -53,6 +53,48 @@ else
   ok "Prerequisites OK"
 fi
 
+# ---------- Scope selection ----------
+SCOPE="${SCOPE:-}"
+if [[ -z "$SCOPE" ]]; then
+  echo ""
+  echo "Install scope:"
+  echo "  1) Project (default) — install into current directory's ./.claude/ and ./CLAUDE.md"
+  echo "  2) Global            — install into ~/.claude/ and ~/.agents/skills/ (affects all projects)"
+  read -r -p "Choice [1]: " choice
+  case "${choice:-1}" in
+    1) SCOPE="project" ;;
+    2) SCOPE="global" ;;
+    *) SCOPE="project" ;;
+  esac
+fi
+
+case "$SCOPE" in
+  project|global) ;;
+  *) err "Invalid SCOPE: $SCOPE (must be 'project' or 'global')"; exit 1 ;;
+esac
+ok "Scope: $SCOPE"
+
+# ---------- Path resolution per scope ----------
+if [[ "$SCOPE" == "global" ]]; then
+  CLAUDE_DIR="${CLAUDE_DIR:-$HOME/.claude}"
+  RULES_DIR="$CLAUDE_DIR/rules"
+  SKILLS_DIR="${AGENTS_DIR:-$HOME/.agents}/skills"
+  CLAUDE_MD="$CLAUDE_DIR/CLAUDE.md"
+  IMPORT_PREFIX="~/.claude/rules"
+else
+  PROJECT_ROOT="${PROJECT_ROOT:-$PWD}"
+  CLAUDE_DIR="$PROJECT_ROOT/.claude"
+  RULES_DIR="$CLAUDE_DIR/rules"
+  SKILLS_DIR="$CLAUDE_DIR/skills"
+  CLAUDE_MD="$PROJECT_ROOT/CLAUDE.md"
+  IMPORT_PREFIX=".claude/rules"
+fi
+
+info "Target paths:"
+echo "    Rules:     $RULES_DIR"
+echo "    Skills:    $SKILLS_DIR"
+echo "    CLAUDE.md: $CLAUDE_MD"
+
 # ---------- Language selection ----------
 LANG_CHOICE="${LANG_CHOICE:-}"
 if [[ -z "$LANG_CHOICE" ]]; then
@@ -70,7 +112,7 @@ fi
 ok "Language: $LANG_CHOICE"
 
 # ---------- Install rules ----------
-info "Installing rules to $RULES_DIR..."
+info "Installing rules..."
 mkdir -p "$RULES_DIR/stacks"
 
 for f in language.md agent-teams.md skill-activation.md; do
@@ -89,26 +131,45 @@ done
 ok "Rules installed"
 
 # ---------- Install/merge CLAUDE.md ----------
-info "Setting up $CLAUDE_DIR/CLAUDE.md..."
-CLAUDE_MD="$CLAUDE_DIR/CLAUDE.md"
+info "Setting up CLAUDE.md..."
 TEMPLATE="$REPO_DIR/CLAUDE.md.template"
+
+# Build an effective template with import paths rewritten for the chosen scope
+EFFECTIVE_TEMPLATE="$(mktemp)"
+trap 'rm -f "$EFFECTIVE_TEMPLATE"' EXIT
+if [[ "$SCOPE" == "global" ]]; then
+  cp "$TEMPLATE" "$EFFECTIVE_TEMPLATE"
+else
+  sed 's|@~/.claude/rules|@.claude/rules|g' "$TEMPLATE" > "$EFFECTIVE_TEMPLATE"
+fi
 
 if [[ -f "$CLAUDE_MD" ]]; then
   backup_if_exists "$CLAUDE_MD"
-  # Append managed block if not present
-  if ! grep -q "# project-starter managed (do not edit between markers)" "$CLAUDE_MD"; then
-    {
-      echo ""
-      echo "<!-- BEGIN project-starter -->"
-      cat "$TEMPLATE"
-      echo "<!-- END project-starter -->"
-    } >> "$CLAUDE_MD"
-    ok "Appended managed block to existing CLAUDE.md"
-  else
-    warn "Managed block already present; manual review recommended"
+  # Remove any existing managed block(s) — idempotent and self-healing for prior duplicates
+  if grep -q "<!-- BEGIN project-starter -->" "$CLAUDE_MD"; then
+    awk '
+      /<!-- BEGIN project-starter -->/ { skip=1; next }
+      /<!-- END project-starter -->/   { skip=0; next }
+      !skip { print }
+    ' "$CLAUDE_MD" > "${CLAUDE_MD}.tmp" && mv "${CLAUDE_MD}.tmp" "$CLAUDE_MD"
+    info "Removed previous managed block(s) for clean re-install"
   fi
+  {
+    # Ensure exactly one blank line before block
+    if [[ -s "$CLAUDE_MD" ]] && [[ "$(tail -c1 "$CLAUDE_MD")" != "" ]]; then echo ""; fi
+    echo ""
+    echo "<!-- BEGIN project-starter -->"
+    cat "$EFFECTIVE_TEMPLATE"
+    echo "<!-- END project-starter -->"
+  } >> "$CLAUDE_MD"
+  ok "Managed block written to existing CLAUDE.md"
 else
-  cat "$TEMPLATE" > "$CLAUDE_MD"
+  mkdir -p "$(dirname "$CLAUDE_MD")"
+  {
+    echo "<!-- BEGIN project-starter -->"
+    cat "$EFFECTIVE_TEMPLATE"
+    echo "<!-- END project-starter -->"
+  } > "$CLAUDE_MD"
   ok "Created $CLAUDE_MD"
 fi
 
@@ -126,13 +187,15 @@ done
 
 # ---------- Done ----------
 echo ""
-ok "project-starter installation complete"
+ok "project-starter installation complete (scope: $SCOPE)"
 echo ""
 echo "Next steps:"
 echo "  1. Review $CLAUDE_MD"
-echo "  2. Check MCP setup: docs/mcp-setup.md (Supabase, Vercel optional)"
-echo "  3. Start a new project: in an empty directory, run 'claude' and say:"
-echo "       \"I want to start a new project\""
-echo "     The bootstrap skill will activate automatically."
+if [[ "$SCOPE" == "project" ]]; then
+  echo "  2. From this directory, run 'claude' — rules and skill load automatically"
+  echo "  3. Project-scoped install does NOT affect ~/.claude/ or ~/.agents/"
+else
+  echo "  2. From any directory, run 'claude' — rules and skill load globally"
+fi
 echo ""
-echo "To uninstall: bash scripts/uninstall.sh"
+echo "To uninstall: SCOPE=$SCOPE bash scripts/uninstall.sh"

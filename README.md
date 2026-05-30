@@ -14,49 +14,75 @@ Designed to replicate a consistent dev environment across machines in one comman
 
 ## Install
 
-### One-liner (recommended)
+### Scope: project (default) vs global
+
+Two install scopes are supported:
+
+- **`project`** (default): installs into the **current directory** — creates `./.claude/rules/`, `./.claude/skills/`, and `./CLAUDE.md`. Does not touch `~/.claude/`. Use this to try the toolkit in a single project, or to keep different rule sets per project.
+- **`global`**: installs into `~/.claude/rules/`, `~/.agents/skills/`, and merges into `~/.claude/CLAUDE.md`. Applies to every Claude session everywhere on your machine.
+
+You'll be prompted to choose, or you can preset `SCOPE=project` / `SCOPE=global`.
+
+### One-liner (project scope, default)
+
+Run from the directory you want to install into:
 
 ```bash
+cd ~/projects/my-app
 bash <(curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.sh)
 ```
 
-The bootstrap script clones (or updates) this repo at `~/projects/project-starter`, then runs `scripts/install.sh`.
+Wherever you are when you run this, the install lands in **that** directory.
 
-**Override target directory**:
+### One-liner (global scope, explicit)
+
 ```bash
-TARGET=~/dev/starter bash <(curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.sh)
+SCOPE=global bash <(curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.sh)
 ```
 
-**Pre-select language (non-interactive)**:
+### Common options
+
 ```bash
+# Clone the source repo to a different location
+TARGET=~/dev/starter bash <(curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.sh)
+
+# Pre-select language (skips the language prompt)
 LANG_CHOICE=ko bash <(curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.sh)
+
+# Fully non-interactive, project scope into a specific directory
+SCOPE=project PROJECT_ROOT=~/projects/my-app LANG_CHOICE=en \
+  bash <(curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.sh)
 ```
 
 ### Manual (clone first)
 
 ```bash
 git clone https://github.com/kimyeonsik/project-starter ~/projects/project-starter
-cd ~/projects/project-starter
-bash scripts/install.sh
+cd ~/path/to/your-project
+SCOPE=project bash ~/projects/project-starter/scripts/install.sh
 ```
 
 ### What the installer does
 
-- Backs up any existing `~/.claude/CLAUDE.md`, `~/.claude/rules/*`, `~/.agents/skills/new-project-bootstrap/*` (timestamped)
-- Prompts for language (English / 한국어) unless `LANG_CHOICE` is set
-- Copies rules and the bootstrap skill
-- Appends a managed block (`<!-- BEGIN project-starter --> ... <!-- END project-starter -->`) to `~/.claude/CLAUDE.md`
+- Backs up any existing target files (CLAUDE.md, rules, skill dir) with a timestamped suffix
+- Prompts for **scope** (project / global) and **language** (en / ko) unless preset via env vars
+- Copies the rule set and bootstrap skill into the chosen scope
+- Wraps a managed block (`<!-- BEGIN project-starter --> ... <!-- END project-starter -->`) into the target `CLAUDE.md`
+- Self-heals on re-runs: any prior managed block(s) are stripped before the fresh block is written, so duplicate appends won't accumulate
 
-Re-running is safe — backups are timestamped per run.
+Re-running is safe and idempotent.
 
 ## Uninstall
 
 ```bash
-cd ~/projects/project-starter
-bash scripts/uninstall.sh
+# Project scope (run from the project directory)
+SCOPE=project bash ~/projects/project-starter/scripts/uninstall.sh
+
+# Global scope
+SCOPE=global bash ~/projects/project-starter/scripts/uninstall.sh
 ```
 
-Backups are preserved. The script removes only files this installer added (between the managed-block markers).
+Or run without `SCOPE` to be prompted. Backups are preserved. The script removes only files this installer added (between the managed-block markers).
 
 ## Prerequisites
 
