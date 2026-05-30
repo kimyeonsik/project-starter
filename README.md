@@ -142,6 +142,78 @@ When done:
 rm -rf /tmp/ps-verify
 ```
 
+## Secrets Setup (API keys / tokens)
+
+Use `scripts/setup-secrets.sh` to inject keys into `.env.local` interactively. Why a separate script:
+
+- Secrets never get pasted into an AI chat (avoids leakage to logs / transcripts)
+- The script reads with `read -s` (hidden input) and writes the file with `chmod 600`
+- Each service is preceded by **where to get the key**, **what scopes/permissions to choose**, and **what's secret vs public**
+- The script is idempotent — re-running updates existing keys in place, never appends duplicates
+- A timestamped backup of `.env.local` is created on the first write of each run
+
+### Interactive menu
+
+```bash
+cd ~/projects/<your-project>
+bash ~/projects/project-starter/scripts/setup-secrets.sh
+```
+
+You'll see a menu with: Supabase / Vercel / Sentry / Amplitude / Cloudflare / Anthropic / Custom / Validate.
+
+### One service only (non-interactive entry)
+
+```bash
+SERVICE=supabase   bash ~/projects/project-starter/scripts/setup-secrets.sh
+SERVICE=vercel     bash ~/projects/project-starter/scripts/setup-secrets.sh
+SERVICE=sentry     bash ~/projects/project-starter/scripts/setup-secrets.sh
+SERVICE=amplitude  bash ~/projects/project-starter/scripts/setup-secrets.sh
+SERVICE=cloudflare bash ~/projects/project-starter/scripts/setup-secrets.sh
+SERVICE=anthropic  bash ~/projects/project-starter/scripts/setup-secrets.sh
+SERVICE=custom     bash ~/projects/project-starter/scripts/setup-secrets.sh
+SERVICE=validate   bash ~/projects/project-starter/scripts/setup-secrets.sh   # verify current .env.local
+```
+
+### Other env vars
+
+```bash
+ENV_FILE=./.env.production bash ...   # target a different env file
+DRY_RUN=1 bash ...                    # preview without writing
+```
+
+### Remote one-liner (no clone needed)
+
+```bash
+cd ~/projects/<your-project>
+bash <(curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/setup-secrets.sh)
+```
+
+### What gets written (per service)
+
+| Service | Variables |
+|---|---|
+| Supabase | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (secret), `SUPABASE_ACCESS_TOKEN` (CLI) |
+| Vercel | `VERCEL_TOKEN` |
+| Sentry | `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN` (secret) |
+| Amplitude | `NEXT_PUBLIC_AMPLITUDE_API_KEY` |
+| Cloudflare | `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` (secret) |
+| Anthropic | `ANTHROPIC_API_KEY` (secret) |
+
+### Safety checks built in
+
+- After every session the script reports whether `.env.local` is covered by `.gitignore`. If not, you get a warning before you can accidentally commit
+- Each entered value is format-validated (Supabase JWT must start with `eyJ`, Anthropic with `sk-ant-`, etc.). Bad format → up to 3 retries → skipped
+- After 3 invalid retries the key is skipped (not partially written)
+- Displayed values are masked (`abcd••••wxyz`) — full secret never appears on screen
+
+### Verifying after setup
+
+```bash
+SERVICE=validate bash ~/projects/project-starter/scripts/setup-secrets.sh
+```
+
+Prints each var with format-check result (OK / format unexpected).
+
 ## Uninstall
 
 ### Quick (interactive — choose scope at prompt)

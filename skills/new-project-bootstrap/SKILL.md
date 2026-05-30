@@ -156,6 +156,11 @@ SENTRY_AUTH_TOKEN=
 
 `sentry.client.config.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts` 자동 생성됨. 확인 후 커밋.
 
+키 주입 (AI에 키 노출 금지):
+```bash
+SERVICE=sentry bash ~/projects/project-starter/scripts/setup-secrets.sh
+```
+
 ### Step 6: Amplitude (Analytics)
 
 ```bash
@@ -181,9 +186,9 @@ export function track(event: string, props?: Record<string, unknown>) {
 
 `src/app/layout.tsx`에 `<AnalyticsProvider>` 컴포넌트로 `initAnalytics()` 호출.
 
-`.env.local`:
-```
-NEXT_PUBLIC_AMPLITUDE_API_KEY=
+키 주입 (AI에 키 노출 금지):
+```bash
+SERVICE=amplitude bash ~/projects/project-starter/scripts/setup-secrets.sh
 ```
 
 ### Step 7: Supabase Auth + DB
@@ -200,10 +205,9 @@ Supabase MCP가 연결되어 있으면 자동:
 pnpm add @supabase/supabase-js @supabase/ssr
 ```
 
-`.env.local`:
-```
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
+키 주입 (AI에 키 노출 금지 — 직접 페이스트):
+```bash
+SERVICE=supabase bash ~/projects/project-starter/scripts/setup-secrets.sh
 ```
 
 `src/lib/supabase/client.ts`, `src/lib/supabase/server.ts`, `src/middleware.ts` 표준 SSR 패턴 작성. (`supabase` 스킬의 SSR 가이드 참조)
