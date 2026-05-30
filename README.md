@@ -74,6 +74,14 @@ Re-running is safe and idempotent.
 
 ## Uninstall
 
+### Quick (interactive — choose scope at prompt)
+
+```bash
+bash ~/projects/project-starter/scripts/uninstall.sh
+```
+
+### Non-interactive
+
 ```bash
 # Project scope (run from the project directory)
 SCOPE=project bash ~/projects/project-starter/scripts/uninstall.sh
@@ -82,7 +90,52 @@ SCOPE=project bash ~/projects/project-starter/scripts/uninstall.sh
 SCOPE=global bash ~/projects/project-starter/scripts/uninstall.sh
 ```
 
-Or run without `SCOPE` to be prompted. Backups are preserved. The script removes only files this installer added (between the managed-block markers).
+### Remote one-liner (no clone needed)
+
+```bash
+SCOPE=global bash <(curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/uninstall.sh)
+```
+
+### What gets removed
+
+| Item | Scope=project | Scope=global |
+|---|---|---|
+| Rules | `./.claude/rules/` | `~/.claude/rules/` |
+| Stack rules | `./.claude/rules/stacks/` | `~/.claude/rules/stacks/` |
+| Bootstrap skill | `./.claude/skills/new-project-bootstrap/` | `~/.agents/skills/new-project-bootstrap/` |
+| Managed block in `CLAUDE.md` | `./CLAUDE.md` (file removed if it becomes empty) | `~/.claude/CLAUDE.md` (block stripped; file preserved if other content remains) |
+
+### What's preserved
+
+- All `*.backup-<timestamp>` files created during install (so you can revert mistakes)
+- Any content in target paths the installer didn't create
+- Your shell config, MCP server configs, other Claude Code settings
+
+### Complete teardown (everything including backups + cloned source)
+
+```bash
+# 1. Uninstall and purge backups for each scope you used
+PURGE_BACKUPS=1 SCOPE=project bash ~/projects/project-starter/scripts/uninstall.sh
+PURGE_BACKUPS=1 SCOPE=global bash ~/projects/project-starter/scripts/uninstall.sh
+
+# 2. Remove the cloned source repo
+rm -rf ~/projects/project-starter
+```
+
+`PURGE_BACKUPS=1` deletes timestamped `*.backup-*` files only in install target directories — it never touches anything else.
+
+### Verify clean removal
+
+```bash
+# Global scope check — all of these should print nothing
+ls ~/.claude/rules/language.md ~/.claude/rules/skill-activation.md 2>/dev/null
+ls ~/.agents/skills/new-project-bootstrap 2>/dev/null
+grep -c "BEGIN project-starter" ~/.claude/CLAUDE.md 2>/dev/null  # → 0 or "No such file"
+
+# Project scope check — run from the project directory
+ls ./.claude/rules 2>/dev/null
+grep -c "BEGIN project-starter" ./CLAUDE.md 2>/dev/null  # → 0 or "No such file"
+```
 
 ## Prerequisites
 
