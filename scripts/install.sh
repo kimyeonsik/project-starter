@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# claude-dev-infra installer
+# project-starter installer
 # Idempotent: safe to re-run. Backs up existing files before modification.
 
 set -euo pipefail
@@ -96,12 +96,12 @@ TEMPLATE="$REPO_DIR/CLAUDE.md.template"
 if [[ -f "$CLAUDE_MD" ]]; then
   backup_if_exists "$CLAUDE_MD"
   # Append managed block if not present
-  if ! grep -q "# claude-dev-infra managed (do not edit between markers)" "$CLAUDE_MD"; then
+  if ! grep -q "# project-starter managed (do not edit between markers)" "$CLAUDE_MD"; then
     {
       echo ""
-      echo "<!-- BEGIN claude-dev-infra -->"
+      echo "<!-- BEGIN project-starter -->"
       cat "$TEMPLATE"
-      echo "<!-- END claude-dev-infra -->"
+      echo "<!-- END project-starter -->"
     } >> "$CLAUDE_MD"
     ok "Appended managed block to existing CLAUDE.md"
   else
@@ -126,7 +126,7 @@ done
 
 # ---------- Done ----------
 echo ""
-ok "claude-dev-infra installation complete"
+ok "project-starter installation complete"
 echo ""
 echo "Next steps:"
 echo "  1. Review $CLAUDE_MD"

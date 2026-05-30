@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# claude-dev-infra uninstaller
+# project-starter uninstaller
 # Removes managed files but keeps backups created during install.
 
 set -euo pipefail
@@ -20,7 +20,7 @@ confirm() {
   [[ "$ans_lower" == "y" || "$ans_lower" == "yes" ]]
 }
 
-info "This will remove rules and skills installed by claude-dev-infra."
+info "This will remove rules and skills installed by project-starter."
 info "Backups (*.backup-*) will be preserved for manual recovery."
 confirm "Proceed?" || { echo "Cancelled."; exit 0; }
 
@@ -46,11 +46,11 @@ done
 
 # Strip managed block from CLAUDE.md
 CLAUDE_MD="$CLAUDE_DIR/CLAUDE.md"
-if [[ -f "$CLAUDE_MD" ]] && grep -q "BEGIN claude-dev-infra" "$CLAUDE_MD"; then
+if [[ -f "$CLAUDE_MD" ]] && grep -q "BEGIN project-starter" "$CLAUDE_MD"; then
   # macOS sed needs '' after -i; use temp file approach for portability
   awk '
-    /<!-- BEGIN claude-dev-infra -->/ { skip=1; next }
-    /<!-- END claude-dev-infra -->/   { skip=0; next }
+    /<!-- BEGIN project-starter -->/ { skip=1; next }
+    /<!-- END project-starter -->/   { skip=0; next }
     !skip { print }
   ' "$CLAUDE_MD" > "${CLAUDE_MD}.tmp" && mv "${CLAUDE_MD}.tmp" "$CLAUDE_MD"
   ok "Stripped managed block from CLAUDE.md"

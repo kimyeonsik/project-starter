@@ -1,4 +1,4 @@
-# claude-dev-infra
+# project-starter
 
 Personal Claude Code development infrastructure: global rules, stack opt-ins, and a deterministic Next.js bootstrap skill.
 
@@ -13,8 +13,8 @@ Designed to replicate a consistent dev environment across machines.
 ## Install
 
 ```bash
-git clone <this-repo-url> ~/projects/claude-dev-infra
-cd ~/projects/claude-dev-infra
+git clone <this-repo-url> ~/projects/project-starter
+cd ~/projects/project-starter
 bash scripts/install.sh
 ```
 
@@ -78,7 +78,7 @@ Some skills work best with MCP servers connected (Supabase, Vercel). See `docs/m
 ## Repository Layout
 
 ```
-claude-dev-infra/
+project-starter/
 ├── CLAUDE.md.template           # Managed block appended to ~/.claude/CLAUDE.md
 ├── claude-rules/
 │   ├── en/                      # English language rule set

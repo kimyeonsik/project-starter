@@ -1,4 +1,4 @@
-# Global Rules (managed by claude-dev-infra)
+# Global Rules (managed by project-starter)
 
 @~/.claude/rules/language.md
 @~/.claude/rules/agent-teams.md
