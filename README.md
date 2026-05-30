@@ -72,6 +72,68 @@ SCOPE=project bash ~/projects/project-starter/scripts/install.sh
 
 Re-running is safe and idempotent.
 
+## Verify Installation
+
+### One-line health check (global scope)
+
+```bash
+echo "Marker: $(grep -c "BEGIN project-starter" ~/.claude/CLAUDE.md 2>/dev/null || echo 0)" && \
+echo "Rules: $(ls ~/.claude/rules/{language,agent-teams,skill-activation}.md 2>/dev/null | wc -l | tr -d ' ')/3" && \
+echo "Stacks: $(ls ~/.claude/rules/stacks/*.md 2>/dev/null | wc -l | tr -d ' ')/5" && \
+echo "Skill: $(ls ~/.agents/skills/new-project-bootstrap/SKILL.md 2>/dev/null && echo OK || echo MISSING)"
+```
+
+Expected output:
+```
+Marker: 1
+Rules: 3/3
+Stacks: 5/5
+Skill: /Users/<you>/.agents/skills/new-project-bootstrap/SKILL.md
+OK
+```
+
+If `Marker: 2` or higher → duplicate-merge bug from older install; re-run `install.sh` to self-heal.
+If `Marker: 0` → managed block missing; re-run `install.sh`.
+If `Rules: 0/3` or `Skill: MISSING` → installer didn't finish; check the install log.
+
+### One-line health check (project scope)
+
+Run from the project root:
+
+```bash
+echo "Marker: $(grep -c "BEGIN project-starter" CLAUDE.md 2>/dev/null || echo 0)" && \
+echo "Rules: $(ls .claude/rules/{language,agent-teams,skill-activation}.md 2>/dev/null | wc -l | tr -d ' ')/3" && \
+echo "Stacks: $(ls .claude/rules/stacks/*.md 2>/dev/null | wc -l | tr -d ' ')/5" && \
+echo "Skill: $(ls .claude/skills/new-project-bootstrap/SKILL.md 2>/dev/null && echo OK || echo MISSING)"
+```
+
+### Verify import paths match scope
+
+```bash
+# Global install should show @~/.claude/rules/...
+grep "^@" ~/.claude/CLAUDE.md
+
+# Project install should show @.claude/rules/... (relative)
+grep "^@" ./CLAUDE.md
+```
+
+### Live verification (most reliable)
+
+```bash
+mkdir /tmp/ps-verify && cd /tmp/ps-verify
+claude
+```
+
+In the Claude session:
+1. Confirm `new-project-bootstrap` appears in the available-skills list
+2. Send: `> start a new project, a test app` (or in Korean: `> 새 프로젝트 시작하자. 테스트용 앱`)
+3. Verify `brainstorming` skill activates automatically
+
+When done:
+```bash
+rm -rf /tmp/ps-verify
+```
+
 ## Uninstall
 
 ### Quick (interactive — choose scope at prompt)
