@@ -1,0 +1,27 @@
+# Global Rules (managed by claude-dev-infra)
+
+@~/.claude/rules/language.md
+@~/.claude/rules/agent-teams.md
+@~/.claude/rules/skill-activation.md
+
+## Rule Update Guide
+
+| Area | File |
+|---|---|
+| Language policy | `rules/language.md` |
+| Agent Teams workflow | `rules/agent-teams.md` |
+| Skill auto-activation (stack-agnostic) | `rules/skill-activation.md` |
+| Stack-specific mappings | `rules/stacks/<stack>.md` |
+
+## Stack Rules (project CLAUDE.md opt-in)
+
+Global makes no stack assumption. Each project CLAUDE.md opts in to the stacks it uses.
+
+```markdown
+# <project> Rules
+
+@~/.claude/rules/stacks/nextjs.md
+@~/.claude/rules/stacks/supabase.md
+```
+
+Available: `nextjs`, `supabase`, `vercel`, `playwright`, `claude-api`
