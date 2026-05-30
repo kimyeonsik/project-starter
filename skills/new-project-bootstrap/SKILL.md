@@ -261,6 +261,9 @@ Accepted
 @~/.claude/rules/stacks/supabase.md
 @~/.claude/rules/stacks/vercel.md
 @~/.claude/rules/stacks/playwright.md
+# Optional — uncomment as needed
+# @~/.claude/rules/stacks/cloudflare.md
+# @~/.claude/rules/stacks/claude-api.md
 
 ## Project-Specific
 
