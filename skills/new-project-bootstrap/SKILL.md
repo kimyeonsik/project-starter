@@ -158,7 +158,8 @@ SENTRY_AUTH_TOKEN=
 
 키 주입 (AI에 키 노출 금지):
 ```bash
-SERVICE=sentry bash ~/projects/project-starter/scripts/setup-secrets.sh
+SERVICE=sentry bash ~/.agents/skills/setup-secrets/setup-secrets.sh
+# (project scope: bash ./.claude/skills/setup-secrets/setup-secrets.sh)
 ```
 
 ### Step 6: Amplitude (Analytics)
@@ -188,7 +189,8 @@ export function track(event: string, props?: Record<string, unknown>) {
 
 키 주입 (AI에 키 노출 금지):
 ```bash
-SERVICE=amplitude bash ~/projects/project-starter/scripts/setup-secrets.sh
+SERVICE=amplitude bash ~/.agents/skills/setup-secrets/setup-secrets.sh
+# (project scope: bash ./.claude/skills/setup-secrets/setup-secrets.sh)
 ```
 
 ### Step 7: Supabase Auth + DB
@@ -207,7 +209,8 @@ pnpm add @supabase/supabase-js @supabase/ssr
 
 키 주입 (AI에 키 노출 금지 — 직접 페이스트):
 ```bash
-SERVICE=supabase bash ~/projects/project-starter/scripts/setup-secrets.sh
+SERVICE=supabase bash ~/.agents/skills/setup-secrets/setup-secrets.sh
+# (project scope: bash ./.claude/skills/setup-secrets/setup-secrets.sh)
 ```
 
 `src/lib/supabase/client.ts`, `src/lib/supabase/server.ts`, `src/middleware.ts` 표준 SSR 패턴 작성. (`supabase` 스킬의 SSR 가이드 참조)

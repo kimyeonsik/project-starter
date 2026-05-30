@@ -182,6 +182,8 @@ for skill_dir in "$REPO_DIR/skills/"*/; do
   dest="$SKILLS_DIR/$skill_name"
   backup_if_exists "$dest"
   cp -R "$skill_dir" "$dest"
+  # Ensure any shell scripts shipped inside the skill are executable
+  find "$dest" -maxdepth 2 -type f -name "*.sh" -exec chmod +x {} \;
   ok "Skill installed: $skill_name"
 done
 

@@ -152,11 +152,18 @@ Use `scripts/setup-secrets.sh` to inject keys into `.env.local` interactively. W
 - The script is idempotent — re-running updates existing keys in place, never appends duplicates
 - A timestamped backup of `.env.local` is created on the first write of each run
 
+Installed as a skill at `~/.agents/skills/setup-secrets/` (global scope) or `./.claude/skills/setup-secrets/` (project scope).
+
 ### Interactive menu
 
 ```bash
 cd ~/projects/<your-project>
-bash ~/projects/project-starter/scripts/setup-secrets.sh
+
+# Global scope install:
+bash ~/.agents/skills/setup-secrets/setup-secrets.sh
+
+# Project scope install:
+bash ./.claude/skills/setup-secrets/setup-secrets.sh
 ```
 
 You'll see a menu with: Supabase / Vercel / Sentry / Amplitude / Cloudflare / Anthropic / Custom / Validate.
@@ -164,14 +171,14 @@ You'll see a menu with: Supabase / Vercel / Sentry / Amplitude / Cloudflare / An
 ### One service only (non-interactive entry)
 
 ```bash
-SERVICE=supabase   bash ~/projects/project-starter/scripts/setup-secrets.sh
-SERVICE=vercel     bash ~/projects/project-starter/scripts/setup-secrets.sh
-SERVICE=sentry     bash ~/projects/project-starter/scripts/setup-secrets.sh
-SERVICE=amplitude  bash ~/projects/project-starter/scripts/setup-secrets.sh
-SERVICE=cloudflare bash ~/projects/project-starter/scripts/setup-secrets.sh
-SERVICE=anthropic  bash ~/projects/project-starter/scripts/setup-secrets.sh
-SERVICE=custom     bash ~/projects/project-starter/scripts/setup-secrets.sh
-SERVICE=validate   bash ~/projects/project-starter/scripts/setup-secrets.sh   # verify current .env.local
+SERVICE=supabase   bash ~/.agents/skills/setup-secrets/setup-secrets.sh
+SERVICE=vercel     bash ~/.agents/skills/setup-secrets/setup-secrets.sh
+SERVICE=sentry     bash ~/.agents/skills/setup-secrets/setup-secrets.sh
+SERVICE=amplitude  bash ~/.agents/skills/setup-secrets/setup-secrets.sh
+SERVICE=cloudflare bash ~/.agents/skills/setup-secrets/setup-secrets.sh
+SERVICE=anthropic  bash ~/.agents/skills/setup-secrets/setup-secrets.sh
+SERVICE=custom     bash ~/.agents/skills/setup-secrets/setup-secrets.sh
+SERVICE=validate   bash ~/.agents/skills/setup-secrets/setup-secrets.sh   # verify current .env.local
 ```
 
 ### Other env vars
@@ -181,11 +188,11 @@ ENV_FILE=./.env.production bash ...   # target a different env file
 DRY_RUN=1 bash ...                    # preview without writing
 ```
 
-### Remote one-liner (no clone needed)
+### Remote one-liner (no install needed)
 
 ```bash
 cd ~/projects/<your-project>
-bash <(curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/setup-secrets.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/main/skills/setup-secrets/setup-secrets.sh)
 ```
 
 ### What gets written (per service)
