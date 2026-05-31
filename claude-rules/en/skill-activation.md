@@ -1,93 +1,140 @@
-# Skill Auto-Activation Rules
+# Skill Auto-Activation Rules (User-Journey Based)
 
 Trigger skills automatically based on context, without explicit invocation. **Unless the user explicitly blocks ("don't use skills"), apply this matrix deterministically.**
 
-## Project Start Interview Protocol
+Goal: connect idea → design → implementation → verification → deploy so the user lands at a high-quality finished service.
 
-**Trigger keywords**: "new project", "start from scratch", "build an app", "create a site", "initial setup"
+## The 6-Stage User Journey
 
-**Execution order**:
-1. Invoke `superpowers:brainstorming` immediately — target users, core value, feature scope
-2. If stack unclear, use `omc:deep-interview` or `grill-me` for additional interview
-3. **If empty directory, run `new-project-bootstrap` skill to set up standard infrastructure** (Next.js + Supabase + Sentry + Amplitude + Vitest + Playwright)
-4. After bootstrap, use `superpowers:writing-plans` to stage first feature
-5. Feature implementation runs `superpowers:test-driven-development` cycle (Red → Green → Refactor)
-6. For automated repetition, use `omc:ralph` or `omc:ultraqa` to loop until green light
-7. E2E additions follow `webapp-testing` skill + `playwright.config.ts` pattern
+### Stage 1 — Discovery (requirements & idea exploration)
 
-## Stack-Agnostic Auto-Activation
+**Trigger keywords**: "I have an idea", "what should I build", "start a project", "from scratch", "user needs"
+
+**Skill chain** (sequential):
+1. `mattpocock/skills@grill-me` — relentlessly grill requirements
+2. `obra/superpowers@brainstorming` — creative exploration: intent, target, constraints
+3. `vercel-labs/agent-skills@find-skills` — find additional skills needed for the domain
+
+Output: concept memo / draft `CONTEXT.md`.
+
+### Stage 2 — Setup (project infrastructure)
+
+**Trigger**: Stage 1 complete + starting in an empty directory.
+
+**Skill chain**:
+1. `new-project-bootstrap` (project-starter's own) — Next.js 15 + TypeScript + pnpm + Sentry + Amplitude + Supabase + Vitest + Playwright in 11 steps
+2. `setup-secrets` (project-starter's own) — called from Step 5/6/7 to inject keys safely (AI never sees them)
+
+Output: working scaffold + `_team/`, `docs/adr/`, `CLAUDE.md`.
+
+### Stage 3 — Design (UI/UX + architecture)
+
+**Trigger keywords**: "design", "UI", "component", "landing", "dashboard", "style", "architecture", "structure"
+
+**Skill chain**:
+- `anthropics/skills@frontend-design` — design quality (avoid generic AI UI)
+- `mattpocock/skills@improve-codebase-architecture` — surface architectural friction, find deepening opportunities
+
+**Stack-specific add-ons** (cumulative when imported in project CLAUDE.md):
+- Next.js → `nextjs-app-router-patterns` + `vercel-react-best-practices`
+
+### Stage 4 — Implementation (TDD cycle)
+
+**Trigger keywords**: "let's build X", "implement this", "write the code", "make it work"
+
+**Skill chain**:
+1. `obra/superpowers@writing-plans` — staged implementation plan
+2. `obra/superpowers@test-driven-development` — Red → Green → Refactor
+3. (loop if needed) `omc:ralph` or `omc:ultraqa` until green light
+
+**Stack-specific add-ons**:
+- Complex TS types → `wshobson/agents@typescript-advanced-types`
+- Supabase work → `supabase` + `supabase-postgres-best-practices`
+- Cloudflare Workers → Cloudflare MCP tools
+- Anthropic SDK → `claude-api`
+
+### Stage 5 — Quality (verification, debugging, refactoring)
+
+**Trigger keywords**:
+- "test", "E2E" → testing
+- "why doesn't this work", "bug", "error", stack trace → debugging
+- "review", "refactor", "clean this up", "rename" → quality
+- "accessibility", "a11y" → accessibility
+
+**Skill chain**:
+| Intent | Activate |
+|---|---|
+| Systematic debugging | `obra/superpowers@systematic-debugging` |
+| E2E automation | `anthropics/skills@webapp-testing` (Playwright) |
+| Accessibility audit | `addyosmani/web-quality-skills@accessibility` |
+| Surgical refactor | `mattpocock/skills@refactor` |
+| Refactor RFC + issue | `mattpocock/skills@request-refactor-plan` |
+| Review of changed code | `simplify` |
+| Clean AI slop | `omc:ai-slop-cleaner` |
+
+### Stage 6 — Pre-deploy (gate)
+
+**Trigger keywords**: "done", "finished", "complete", "PR", "merge", "before deploying"
+
+**Forced gate** (cannot be bypassed):
+1. `obra/superpowers@verification-before-completion` — real execution check before "done" is allowed
+2. `obra/superpowers@requesting-code-review` — self-review before PR
+3. (when security-relevant) `security-review`
+
+## Stack Signals → Auto-Activate
+
+When the project's CLAUDE.md imports a stack rule, that stack's signals cumulatively activate its skills.
 
 | Signal | Auto-activate |
 |---|---|
-| TDD, new feature implementation start | `superpowers:test-driven-development` |
-| Library/SDK/CLI documentation question | `claude.ai Context7` MCP first |
+| TDD, starting a new feature | `obra/superpowers@test-driven-development` |
+| Library/SDK/CLI doc question | `claude.ai Context7` MCP first |
 
-## Stack-Specific Mappings (opt-in)
-
-Stack signal → skill mappings are defined in `~/.claude/rules/stacks/<stack>.md` and apply **only when the project CLAUDE.md explicitly imports them**. The global config assumes no specific stack.
-
-Available stack rules:
-
-| File | Target |
-|---|---|
-| `stacks/nextjs.md` | Next.js + React + frontend-design |
-| `stacks/supabase.md` | Supabase + Postgres |
-| `stacks/vercel.md` | Vercel deployment/operations |
-| `stacks/playwright.md` | Playwright E2E |
-| `stacks/claude-api.md` | Anthropic SDK / Claude API |
-
-Project CLAUDE.md example:
-```markdown
-@~/.claude/rules/stacks/nextjs.md
-@~/.claude/rules/stacks/supabase.md
-```
-
-## Regular Maintenance / Refactoring
+## Maintenance / Operations
 
 | User intent | Auto chain |
 |---|---|
-| "health check", "weekly review", "code state" | `improve-codebase-architecture` (diagnosis) |
-| "regularly", "every week", "scheduling", "cron" | propose `schedule` |
-| "refactor plan", "RFC", "how to fix this" | `request-refactor-plan` |
-| "clean up this code", "rename", "split function" | `refactor` |
-| "remove AI slop", "deletion-first" | `omc:ai-slop-cleaner` |
-| "review only changed code", "review what I just wrote" | `simplify` |
-
-## Code Change Auto-Gates
-
-| Timing | Forced skill |
-|---|---|
-| Just before "done", "finished", "complete" | `superpowers:verification-before-completion` |
-| Just before PR creation/merge | `simplify` + `review` (+ `security-review` if needed) |
-| `isolation: worktree` work wrap-up | `superpowers:finishing-a-development-branch` |
-| Bug / failure / unexpected behavior | `superpowers:systematic-debugging` |
-
-## Debugging / Exploration
-
-| Signal | Auto skill |
-|---|---|
-| "why doesn't this work", "bug", "error", stack trace | `superpowers:systematic-debugging` |
-| Broad codebase exploration (3+ queries expected) | `Explore` subagent |
-| Library/SDK/CLI documentation question | `claude.ai Context7` MCP first |
-
-## Priority
-
-When multiple skills match simultaneously:
-1. **Process skills first** (brainstorming, systematic-debugging, writing-plans) — determine HOW
-2. **Domain skills next** (nextjs-*, supabase, frontend-design) — implement WHAT
-3. **Verification skills last** (verification-before-completion, simplify) — wrap up
+| "health check", "weekly review", "code state" | `improve-codebase-architecture` (diagnose) |
+| "regularly", "every week", "scheduling" | propose `schedule` |
+| "refactor plan", "RFC" | `request-refactor-plan` |
+| "review only changed code" | `simplify` |
 
 ## Auto-Activation Blocking
 
 Hold off when:
-- User explicitly says "don't use skills", "keep it simple", "just answer"
+- User says "don't use skills", "keep it simple", "just answer"
 - Simple Q&A ("what does this function do?", "what is X?")
 - Trivial changes like 1-line edits
+
+## Priority
+
+When multiple stages match simultaneously:
+1. **Stage 6 gate (verification)** — forced before any "done" claim
+2. **Stage 5 debugging** — bug signals override other stages
+3. **Stage 1 Discovery** — ambiguity wins (clarify first)
+4. **Other stages** — domain / timing match
 
 ## Usage Report
 
 Announce auto-activated skills in **one line** at response start.
 
-Example: `(brainstorming + nextjs-app-router-patterns activated)`
+Examples:
+- `(Stage 1 — Discovery: grill-me + brainstorming activated)`
+- `(Stage 4 — Implementation: TDD + supabase activated)`
+- `(Stage 6 — Pre-deploy: verification-before-completion forced gate)`
 
 No verbose explanations.
+
+## Inventory Self-Check
+
+Run before bootstrap or when the user requests it:
+```bash
+npx skills list -g
+```
+
+Quick check for the essential bundle:
+```bash
+npx skills list -g | grep -E "brainstorm|writing-plans|test-driven|systematic-debug|verification|grill-me|find-skills|frontend-design|improve-codebase|refactor"
+```
+
+11 matches = essential bundle is complete. Missing entries → re-run `project-starter/scripts/install.sh` with `SKILL_BUNDLE=essential` (or `full`).

@@ -34,6 +34,39 @@ description: Bootstrap a new Next.js + TypeScript + pnpm project with Sentry, Am
 
 ## Bootstrap 단계 (순서 엄수)
 
+### Step 0: 스킬 인벤토리 점검 (의존성 확인)
+
+이 부트스트랩이 11단계 진행하면서 의존하는 스킬들 — 누락 시 워크플로우가 끊긴다.
+
+| 단계 | 의존 스킬 | 역할 |
+|---|---|---|
+| 인터뷰 직전 | `brainstorming`, `grill-me`, `find-skills` | Discovery 마무리 |
+| Step 1.5 (계획) | `writing-plans` | 단계화 |
+| Step 3/4 (테스트 인프라) | `test-driven-development` | TDD 사이클 |
+| Step 5/6/7 (키 주입) | `setup-secrets` | API 키 안전 주입 |
+| Step 8 (구조) | `improve-codebase-architecture`, `frontend-design` | 디렉토리/디자인 |
+| Step 11 (최종 검증) | `verification-before-completion` | 게이트 |
+
+**점검 명령**:
+```bash
+npx skills list -g | grep -E "brainstorm|grill-me|find-skills|writing-plans|test-driven|verification|frontend-design|improve-codebase|refactor"
+```
+
+기대: 9개 이상 매칭.
+
+**누락 시 대응**:
+- 누락 수가 적으면 (1~2개): 사용자에게 알리고 부트스트랩 계속 (해당 단계 수동 수행 안내)
+- 다수 누락이거나 essential 번들 자체가 안 깔린 상태:
+  ```bash
+  # project-starter 클론 위치에서
+  SCOPE=global SKILL_BUNDLE=essential bash scripts/install.sh
+  ```
+  실행 후 본 부트스트랩 재시작 권장.
+
+**점검 생략 조건**:
+- `SKIP_INVENTORY=1` 환경변수 또는
+- 사용자가 "스킬 점검 건너뛰자" 명시
+
 ### Step 1: 환경 확인
 
 ```bash
