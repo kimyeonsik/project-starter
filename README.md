@@ -84,7 +84,7 @@ M=$(grep -c "BEGIN project-starter" "$HOME/.claude/CLAUDE.md" 2>/dev/null || ech
 R=$(ls "$HOME/.claude/rules/language.md" "$HOME/.claude/rules/agent-teams.md" "$HOME/.claude/rules/skill-activation.md" 2>/dev/null | wc -l | tr -d " ")
 S=$(find "$HOME/.claude/rules/stacks" -maxdepth 1 -name "*.md" 2>/dev/null | wc -l | tr -d " ")
 K=$([ -f "$HOME/.agents/skills/new-project-bootstrap/SKILL.md" ] && echo OK || echo MISSING)
-echo "Marker: $M"; echo "Rules: $R/3"; echo "Stacks: $S/5"; echo "Skill: $K"
+echo "Marker: $M"; echo "Rules: $R/3"; echo "Stacks: $S/6"; echo "Skill: $K"
 '
 ```
 
@@ -92,14 +92,14 @@ Expected output:
 ```
 Marker: 1
 Rules: 3/3
-Stacks: 5/5
+Stacks: 6/6
 Skill: OK
 ```
 
 Diagnosis:
 - `Marker: 0` → managed block missing; re-run `install.sh`
 - `Marker: 2` or higher → duplicate (older install bug); re-run `install.sh` to self-heal
-- `Rules: 0/3` or `Stacks: 0/5` or `Skill: MISSING` → installer didn't finish; re-run
+- `Rules: 0/3` or `Stacks: 0/6` or `Skill: MISSING` → installer didn't finish; re-run
 
 ### One-line health check (project scope)
 
@@ -111,7 +111,7 @@ M=$(grep -c "BEGIN project-starter" ./CLAUDE.md 2>/dev/null || echo 0)
 R=$(ls ./.claude/rules/language.md ./.claude/rules/agent-teams.md ./.claude/rules/skill-activation.md 2>/dev/null | wc -l | tr -d " ")
 S=$(find ./.claude/rules/stacks -maxdepth 1 -name "*.md" 2>/dev/null | wc -l | tr -d " ")
 K=$([ -f ./.claude/skills/new-project-bootstrap/SKILL.md ] && echo OK || echo MISSING)
-echo "Marker: $M"; echo "Rules: $R/3"; echo "Stacks: $S/5"; echo "Skill: $K"
+echo "Marker: $M"; echo "Rules: $R/3"; echo "Stacks: $S/6"; echo "Skill: $K"
 '
 ```
 
@@ -144,7 +144,7 @@ rm -rf /tmp/ps-verify
 
 ## Secrets Setup (API keys / tokens)
 
-Use `scripts/setup-secrets.sh` to inject keys into `.env.local` interactively. Why a separate script:
+Use the `setup-secrets` skill (`skills/setup-secrets/setup-secrets.sh`) to inject keys into `.env.local` interactively. Why a separate script:
 
 - Secrets never get pasted into an AI chat (avoids leakage to logs / transcripts)
 - The script reads with `read -s` (hidden input) and writes the file with `chmod 600`
@@ -216,7 +216,8 @@ bash <(curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/m
 ### Verifying after setup
 
 ```bash
-SERVICE=validate bash ~/projects/project-starter/scripts/setup-secrets.sh
+SERVICE=validate bash ~/.agents/skills/setup-secrets/setup-secrets.sh
+# project scope: bash ./.claude/skills/setup-secrets/setup-secrets.sh
 ```
 
 Prints each var with format-check result (OK / format unexpected).

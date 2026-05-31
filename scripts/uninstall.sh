@@ -132,9 +132,14 @@ else
   warn "Any manual edits made after install will be overwritten by the restored backup"
 fi
 
+# Skills managed by this installer. Add new entries when shipping new skills.
+PS_SKILLS=(new-project-bootstrap setup-secrets)
+
 info "Targets:"
 echo "    Rules:     $RULES_DIR"
-echo "    Skills:    $SKILLS_DIR/new-project-bootstrap"
+for sk in "${PS_SKILLS[@]}"; do
+  echo "    Skill:     $SKILLS_DIR/$sk"
+done
 echo "    CLAUDE.md: $CLAUDE_MD"
 if [[ "$PURGE_BACKUPS" == "1" ]]; then
   echo "    Backups:   ALL *.backup-* under the above paths (will be deleted after processing)"
@@ -152,8 +157,10 @@ if [[ "$NO_RESTORE" != "1" ]]; then
     bk="$(oldest_backup "$RULES_DIR/stacks")"
     if [[ -n "$bk" ]]; then echo "    ✓ stacks/ ← $(basename "$bk")"; else echo "    ✗ stacks/ (no backup → will be removed)"; fi
   fi
-  bk="$(oldest_backup "$SKILLS_DIR/new-project-bootstrap")"
-  if [[ -n "$bk" ]]; then echo "    ✓ new-project-bootstrap ← $(basename "$bk")"; else echo "    ✗ new-project-bootstrap (no backup → will be removed)"; fi
+  for sk in "${PS_SKILLS[@]}"; do
+    bk="$(oldest_backup "$SKILLS_DIR/$sk")"
+    if [[ -n "$bk" ]]; then echo "    ✓ $sk ← $(basename "$bk")"; else echo "    ✗ $sk (no backup → will be removed)"; fi
+  done
   bk="$(oldest_backup "$CLAUDE_MD")"
   if [[ -n "$bk" ]]; then echo "    ✓ CLAUDE.md ← $(basename "$bk")"; else echo "    ✗ CLAUDE.md (no backup → strip managed block only)"; fi
 fi
@@ -172,8 +179,10 @@ restore_or_remove "$RULES_DIR/stacks"
 # rules/ dir cleanup (only if empty after processing)
 [[ -d "$RULES_DIR" ]] && [[ -z "$(ls -A "$RULES_DIR" 2>/dev/null)" ]] && rmdir "$RULES_DIR" && ok "Removed empty $RULES_DIR"
 
-# Skill
-restore_or_remove "$SKILLS_DIR/new-project-bootstrap"
+# Skills
+for sk in "${PS_SKILLS[@]}"; do
+  restore_or_remove "$SKILLS_DIR/$sk"
+done
 
 # CLAUDE.md
 restore_or_strip_claude_md
