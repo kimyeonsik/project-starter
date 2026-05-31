@@ -67,6 +67,100 @@ npx skills list -g | grep -E "brainstorm|grill-me|find-skills|writing-plans|test
 - `SKIP_INVENTORY=1` 환경변수 또는
 - 사용자가 "스킬 점검 건너뛰자" 명시
 
+### Step 0.5: 기존 자료 수집 (옵션)
+
+사용자가 이미 가지고 있는 PRD, 더미 사이트, 디자인 자료 등을 `_inputs/`에 정리하고 부트스트랩 컨텍스트로 사용한다.
+
+#### 자동 감지 + 인터뷰
+
+먼저 `_inputs/`가 이미 존재하면 그 내용을 인벤토리에 추가. 그 다음 사용자에게 추가 경로를 묻는다.
+
+질문 형식 (이대로 사용자에게 보여줌):
+```
+기존에 가지고 있는 자료가 있나요? 경로(또는 URL)를 알려주시면
+_inputs/에 정리해서 부트스트랩 컨텍스트로 사용합니다.
+
+형식 (없는 항목은 비우거나 'none' 입력):
+  PRD/스펙:             <파일 또는 디렉토리 경로>
+  더미 사이트/프로토타입:  <경로 또는 URL>
+  디자인/와이어프레임:    <경로>
+  Figma:               <URL>
+  리서치/경쟁사:        <경로>
+  사용자 인터뷰:        <경로>
+  데이터 샘플:          <경로>
+
+붙여넣기 또는 'none':
+```
+
+#### 자동 분류 매트릭스
+
+| 사용자 표현 / 키워드 | `_inputs/` 분류 디렉토리 |
+|---|---|
+| prd, requirements, spec, 기획서, 스펙 | `_inputs/prd/` |
+| dummy site, prototype, mockup, 더미, 데모, 시안 | `_inputs/dummy-site/` |
+| design, wireframe, screenshot, 디자인, 와이어프레임, 시안 이미지 | `_inputs/design/` |
+| `figma.com/...` URL | `_inputs/figma/` + Figma MCP 즉시 호출 |
+| http/https URL (figma 외) | `_inputs/live-refs/` + Playwright 스크린샷 |
+| research, competitor, market analysis, 경쟁사, 리서치 | `_inputs/research/` |
+| user interview, survey, feedback, 사용자 인터뷰 | `_inputs/user-research/` |
+| data, dataset, sample, csv/json sample | `_inputs/data/` |
+| docs, brand guide, 문서, 브랜드 가이드 | `_inputs/docs/` |
+
+키워드가 명확하지 않으면 사용자에게 분류 확인.
+
+#### 처리 절차
+
+각 경로별:
+
+1. **존재 확인**: `ls -d "<path>"` 또는 URL HEAD 요청
+2. **크기 체크**: 50MB 미만이면 자동 `cp -R`. 50MB 이상이면 사용자에게 `cp` vs `ln -s` 선택 권유.
+3. **URL 별도 처리**:
+   - Figma URL → `mcp__figma__get_design_context` 호출, 결과를 `_inputs/figma/<file-name>.json`에 저장
+   - 라이브 사이트 URL → `pnpm dlx playwright install chromium` 후 페이지 스크린샷 캡처
+   - GitHub URL → `gh repo clone <repo> _inputs/refs/<name> -- --depth 1` (read-only 참고용)
+4. **더미 사이트 추가 자동 분석**:
+   ```bash
+   # 페이지 발견
+   find _inputs/dummy-site -name "*.html" -maxdepth 3
+   # Playwright로 각 페이지 스크린샷
+   #   → _inputs/dummy-site/screenshots/<page>.png
+   # HTML 구조 추출 (heading 계층, 주요 컨테이너)
+   #   → _inputs/dummy-site/structure.md
+   # CSS 변수 / 색상 토큰 추출
+   #   → _inputs/dummy-site/tokens-draft.md
+   ```
+5. **결과 보고** (표 형식):
+   ```
+   ✓ /path/to/spec.md       → _inputs/prd/spec.md
+   ✓ /path/to/mockup/       → _inputs/dummy-site/ (12 HTML, screenshots 캡처 완료)
+   ✓ figma.com/file/xxx     → _inputs/figma/main.json (15 nodes)
+   ⚠ /path/that/missing     → 경로 없음 (사용자 확인 필요)
+   ```
+
+#### 후속 단계 연결
+
+분류된 자료는 후속 부트스트랩 단계의 입력으로 자동 흘러간다:
+
+| 분류 | 활용 단계 |
+|---|---|
+| `_inputs/prd/`, `_inputs/research/`, `_inputs/user-research/` | Stage 1 (Discovery) — grill-me / brainstorming 초기 컨텍스트 |
+| `_inputs/dummy-site/`, `_inputs/design/`, `_inputs/figma/`, `_inputs/live-refs/` | Stage 3 (Design) — frontend-design 스킬 참고 |
+| `_inputs/data/` | Stage 4 (Implementation) — 시드 데이터 / 마이그레이션 참고 |
+| `_inputs/docs/` | Stage 3-4 — 일반 참고 자료 |
+
+#### 정리 단계 (선택)
+
+부트스트랩 완료 후 `_inputs/`를 어떻게 할지 사용자 선택:
+- 유지 (`_inputs/`를 git에 포함, 참고용 영구 보존)
+- `.gitignore`에 추가 (참고만 하고 코드에는 안 들어감)
+- 삭제 (디스크 정리)
+
+기본값: `.gitignore`에 `_inputs/` 추가 + 사용자가 명시 요청 시 코드에 부분 포함.
+
+#### 입력 자료가 없을 때
+
+`none` 또는 빈 답변이면 Step 0.5 건너뛰고 Stage 1을 그대로 진행. 디폴트 흐름과 동일.
+
 ### Step 1: 환경 확인
 
 ```bash

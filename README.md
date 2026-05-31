@@ -379,6 +379,60 @@ grep -c "BEGIN project-starter" ./CLAUDE.md 2>/dev/null  # → 0 or "No such fil
 
 See `docs/prereq.md` for installation guidance.
 
+## Starting With Existing Materials (PRD, dummy site, design refs)
+
+If you already have a PRD, a working dummy site, Figma file, or other reference material, the bootstrap can ingest them. You don't need to organize them in advance — paste the paths during the bootstrap interview and Claude sorts them into `_inputs/` for you.
+
+### How it works
+
+During Step 0.5 of `new-project-bootstrap`, Claude asks:
+
+```
+기존에 가지고 있는 자료가 있나요? 경로를 알려주시면 _inputs/에 정리합니다.
+
+  PRD/스펙:             <path>
+  더미 사이트/프로토타입:  <path or URL>
+  디자인/와이어프레임:    <path>
+  Figma:               <URL>
+  리서치/경쟁사:        <path>
+  사용자 인터뷰:        <path>
+  데이터 샘플:          <path>
+
+또는 'none':
+```
+
+Paste the entries you have. Claude classifies them by keyword and copies (or symlinks for large files) into the right slot.
+
+### Auto-classification map
+
+| Your wording | Lands in |
+|---|---|
+| `prd` / `spec` / `requirements` / 기획서 | `_inputs/prd/` |
+| `dummy site` / `prototype` / 더미 / 시안 | `_inputs/dummy-site/` |
+| `design` / `wireframe` / `screenshot` | `_inputs/design/` |
+| `figma.com/...` URL | `_inputs/figma/` (+ Figma MCP fetches metadata) |
+| Other `http(s)://...` URL | `_inputs/live-refs/` (+ Playwright captures screenshots) |
+| `research` / `competitor` / 경쟁사 | `_inputs/research/` |
+| `user interview` / `survey` | `_inputs/user-research/` |
+| `data` / sample CSV/JSON | `_inputs/data/` |
+
+### Dummy site gets extra treatment
+
+When a dummy site lands in `_inputs/dummy-site/`, Claude additionally:
+- captures per-page screenshots via Playwright → `_inputs/dummy-site/screenshots/`
+- extracts HTML structure hints → `_inputs/dummy-site/structure.md`
+- pulls CSS variables / color tokens → `_inputs/dummy-site/tokens-draft.md`
+
+These then feed into Stage 3 (Design) so `frontend-design` builds the new UI with the same tone.
+
+### Pre-organized inputs also work
+
+If you already laid things out under `./_inputs/` before starting bootstrap, those are auto-detected — no need to re-paste.
+
+### Post-bootstrap
+
+By default `_inputs/` is added to `.gitignore` (reference only, not shipped). You can opt to commit it if the material is part of the spec.
+
 ## Usage After Install
 
 In any empty directory, start a Claude session and trigger the bootstrap:
