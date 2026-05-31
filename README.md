@@ -65,12 +65,81 @@ SCOPE=project bash ~/projects/project-starter/scripts/install.sh
 ### What the installer does
 
 - Backs up any existing target files (CLAUDE.md, rules, skill dir) with a timestamped suffix
-- Prompts for **scope** (project / global) and **language** (en / ko) unless preset via env vars
+- Prompts for **scope** (project / global), **language** (en / ko), and **skill bundle** (essential / full / minimal) unless preset via env vars
 - Copies the rule set and bootstrap skill into the chosen scope
+- Installs external skills from skills.sh via `npx skills` (essential and full bundles)
+- Writes `.project-starter-manifest` recording every file/dir/skill it touched
 - Wraps a managed block (`<!-- BEGIN project-starter --> ... <!-- END project-starter -->`) into the target `CLAUDE.md`
 - Self-heals on re-runs: any prior managed block(s) are stripped before the fresh block is written, so duplicate appends won't accumulate
 
 Re-running is safe and idempotent.
+
+## Skill Bundles
+
+The installer can pull a curated set of external skills from [skills.sh](https://skills.sh) so a fresh machine gets the full user-journey toolkit out of the box.
+
+### Bundle selection
+
+```bash
+# Pre-select non-interactively
+SKILL_BUNDLE=essential bash ~/projects/project-starter/scripts/install.sh
+SKILL_BUNDLE=full      bash ...
+SKILL_BUNDLE=minimal   bash ...   # skip external skills entirely
+```
+
+Or pick at the install prompt.
+
+### What each bundle installs
+
+**Essential** (default — covers the user journey end to end):
+
+| Stage | Skill |
+|---|---|
+| Discovery | `mattpocock/skills@grill-me`, `vercel-labs/agent-skills@find-skills`, `obra/superpowers@brainstorming`, `obra/superpowers@writing-plans` |
+| Implementation | `obra/superpowers@test-driven-development` |
+| Quality | `obra/superpowers@systematic-debugging`, `mattpocock/skills@improve-codebase-architecture`, `mattpocock/skills@refactor` |
+| Pre-deploy | `obra/superpowers@verification-before-completion`, `obra/superpowers@requesting-code-review` |
+| Design | `anthropics/skills@frontend-design` |
+
+**Full** (Essential + web dev + Supabase deep skills):
+
+| Stage | Extra skills |
+|---|---|
+| Web dev | `vercel-labs/agent-skills@vercel-react-best-practices`, `wshobson/agents@nextjs-app-router-patterns`, `wshobson/agents@typescript-advanced-types` |
+| Web quality | `anthropics/skills@webapp-testing`, `addyosmani/web-quality-skills@accessibility` |
+| Supabase deep | `supabase/agent-skills@supabase`, `supabase/agent-skills@supabase-postgres-best-practices` |
+
+**Minimal** — only `new-project-bootstrap` and `setup-secrets`. No external network call. Use for sandbox/CI installs or if you've already curated your skills.
+
+### Failure handling
+
+| Failure | Behavior |
+|---|---|
+| Network unreachable (`skills.sh` not pingable) | **Abort install** with clear message. Re-run with `SKILL_BUNDLE=minimal` to skip, or fix network. |
+| `npx` not available | Abort (Node is missing — install Node 20+). |
+| Individual skill removed/renamed on skills.sh | Warn, print up to 3 alternatives from `npx skills find`, continue with remaining skills. Failed skills are recorded as `external_skill_failed:` in the manifest for review. |
+
+### After install — managing external skills
+
+```bash
+# What's actually installed globally?
+npx skills list -g
+
+# Update later
+npx skills update
+
+# The project-starter manifest tracks what IT installed:
+grep '^external_skill' ~/.claude/.project-starter-manifest        # global scope
+grep '^external_skill' ./.claude/.project-starter-manifest         # project scope
+```
+
+### Uninstall behavior
+
+By default, `uninstall.sh` leaves external skills alone (they may serve other projects too). To also remove them:
+
+```bash
+REMOVE_EXTERNAL=1 SCOPE=global bash ~/projects/project-starter/scripts/uninstall.sh
+```
 
 ## Verify Installation
 

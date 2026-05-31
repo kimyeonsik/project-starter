@@ -65,6 +65,7 @@ fi
 
 MANIFEST="$CLAUDE_DIR/.project-starter-manifest"
 PURGE_BACKUPS="${PURGE_BACKUPS:-0}"
+REMOVE_EXTERNAL="${REMOVE_EXTERNAL:-0}"
 
 # ---------- Strip managed block helper (used in both manifest and fallback paths) ----------
 strip_managed_block() {
@@ -150,6 +151,29 @@ if [[ -f "$MANIFEST" ]]; then
 
   # CLAUDE.md handling
   strip_managed_block "$CLAUDE_MD" "$PRE_EXISTING"
+
+  # External skills — only touched when REMOVE_EXTERNAL=1
+  if [[ "$REMOVE_EXTERNAL" == "1" ]]; then
+    if command -v npx >/dev/null 2>&1; then
+      while IFS= read -r line; do
+        sk="${line#external_skill:}"
+        info "Removing external skill: $sk"
+        if npx --yes skills remove "$sk" -g -y >/dev/null 2>&1; then
+          ok "  removed: $sk"
+        else
+          warn "  failed to remove: $sk (may already be gone)"
+        fi
+      done < <(grep '^external_skill:' "$MANIFEST" 2>/dev/null || true)
+    else
+      warn "REMOVE_EXTERNAL=1 set but npx not available; skipped external skill removal"
+    fi
+  else
+    ext_count="$(grep -c '^external_skill:' "$MANIFEST" 2>/dev/null || true)"
+    : "${ext_count:=0}"
+    if [[ "$ext_count" -gt 0 ]]; then
+      info "External skills preserved ($ext_count). Add REMOVE_EXTERNAL=1 to remove via npx skills."
+    fi
+  fi
 
   # Remove manifest itself
   rm -f "$MANIFEST"
