@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
-# project-starter uninstaller
+# project-starter uninstaller (manifest-based)
 #
-# Default behavior: RESTORE files to pre-install state from the oldest backups.
-# Items without backups are removed. Any manual edits made after install will
-# be overwritten by the restored backup.
+# Reads the manifest file written at install time and removes exactly what
+# the installer created. The user's pre-existing content is preserved:
 #
-# Scopes:
-#   project (default) — operates on $PROJECT_ROOT/.claude/ and $PROJECT_ROOT/CLAUDE.md
-#   global            — operates on ~/.claude/ and ~/.agents/skills/
+#   - If CLAUDE.md existed before install → only the managed block is stripped
+#   - If CLAUDE.md was created by install → the file is removed when empty
+#   - Files not listed in the manifest are NEVER touched
+#
+# Scopes (auto-detected from the manifest, or set explicitly):
+#   project (default) — $PROJECT_ROOT/.claude/  and  $PROJECT_ROOT/CLAUDE.md
+#   global            — ~/.claude/  and  ~/.agents/skills/
 #
 # Env vars:
 #   SCOPE           "project" or "global"; prompts if unset
-#   PROJECT_ROOT    For SCOPE=project, directory to uninstall from (default: $PWD)
-#   NO_RESTORE      Set "1" to skip backup restore; only strip managed files (legacy mode)
-#   PURGE_BACKUPS   Set "1" to delete *.backup-* files after processing
-#                   (mutually compatible with restore: restore copies the backup,
-#                    then purge removes the original backup file)
+#   PROJECT_ROOT    For SCOPE=project, the install root (default: $PWD)
+#   PURGE_BACKUPS   Set "1" to delete *.backup-* files in install dirs after uninstall
 
 set -euo pipefail
 
@@ -63,157 +63,135 @@ else
   CLAUDE_MD="$PROJECT_ROOT/CLAUDE.md"
 fi
 
-NO_RESTORE="${NO_RESTORE:-0}"
+MANIFEST="$CLAUDE_DIR/.project-starter-manifest"
 PURGE_BACKUPS="${PURGE_BACKUPS:-0}"
 
-# ---------- Helper: find oldest backup for a given target ----------
-# Echoes the oldest backup path or empty string.
-oldest_backup() {
-  local target="$1"
-  local parent base candidate
-  parent="$(dirname "$target")"
-  base="$(basename "$target")"
-  [[ -d "$parent" ]] || return 0
-  # Use find to avoid zsh glob errors when no matches exist
-  candidate="$(find "$parent" -maxdepth 1 -name "${base}.backup-*" -print 2>/dev/null | sort | head -1)"
-  printf '%s' "$candidate"
-}
-
-# Restore or remove a single file/dir
-restore_or_remove() {
-  local target="$1"
-  local backup
-  backup="$(oldest_backup "$target")"
-  if [[ "$NO_RESTORE" != "1" && -n "$backup" && -e "$backup" ]]; then
-    [[ -e "$target" ]] && rm -rf "$target"
-    cp -R "$backup" "$target"
-    ok "Restored: $target ← $(basename "$backup")"
-  else
-    if [[ -e "$target" ]]; then
-      rm -rf "$target"
-      if [[ "$NO_RESTORE" == "1" ]]; then
-        ok "Removed: $target (NO_RESTORE=1)"
-      else
-        ok "Removed: $target (no backup found)"
-      fi
-    fi
+# ---------- Strip managed block helper (used in both manifest and fallback paths) ----------
+strip_managed_block() {
+  local file="$1" pre_existing="$2"
+  if [[ ! -f "$file" ]]; then return; fi
+  if ! grep -q "BEGIN project-starter" "$file"; then return; fi
+  awk '
+    /<!-- BEGIN project-starter -->/ { skip=1; next }
+    /<!-- END project-starter -->/   { skip=0; next }
+    !skip { print }
+  ' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
+  ok "Stripped managed block(s) from $file"
+  # Remove if the installer created it and it's now empty/whitespace
+  if [[ "$pre_existing" == "false" ]] && [[ -z "$(grep -v '^[[:space:]]*$' "$file" 2>/dev/null)" ]]; then
+    rm "$file"
+    ok "Removed $file (created by installer, now empty)"
   fi
 }
 
-# Restore CLAUDE.md from oldest backup, OR strip managed block only
-restore_or_strip_claude_md() {
-  local backup
-  backup="$(oldest_backup "$CLAUDE_MD")"
-  if [[ "$NO_RESTORE" != "1" && -n "$backup" && -f "$backup" ]]; then
-    cp "$backup" "$CLAUDE_MD"
-    ok "Restored CLAUDE.md ← $(basename "$backup")"
-    return
-  fi
-  if [[ -f "$CLAUDE_MD" ]] && grep -q "BEGIN project-starter" "$CLAUDE_MD"; then
-    awk '
-      /<!-- BEGIN project-starter -->/ { skip=1; next }
-      /<!-- END project-starter -->/   { skip=0; next }
-      !skip { print }
-    ' "$CLAUDE_MD" > "${CLAUDE_MD}.tmp" && mv "${CLAUDE_MD}.tmp" "$CLAUDE_MD"
-    ok "Stripped managed block(s) from $CLAUDE_MD"
-    if [[ "$SCOPE" == "project" ]] && [[ -z "$(grep -v '^[[:space:]]*$' "$CLAUDE_MD" 2>/dev/null)" ]]; then
-      rm "$CLAUDE_MD"
-      ok "Removed empty $CLAUDE_MD"
-    fi
-  fi
-}
-
-# ---------- Preview & confirm ----------
-info "Scope: $SCOPE"
-if [[ "$NO_RESTORE" == "1" ]]; then
-  warn "Mode: NO_RESTORE — managed files will be REMOVED (legacy behavior)"
-else
-  info "Mode: RESTORE — files will be reverted to oldest backup (pre-install state)"
-  warn "Any manual edits made after install will be overwritten by the restored backup"
-fi
-
-# Skills managed by this installer. Add new entries when shipping new skills.
-PS_SKILLS=(new-project-bootstrap setup-secrets)
-
-info "Targets:"
-echo "    Rules:     $RULES_DIR"
-for sk in "${PS_SKILLS[@]}"; do
-  echo "    Skill:     $SKILLS_DIR/$sk"
-done
-echo "    CLAUDE.md: $CLAUDE_MD"
-if [[ "$PURGE_BACKUPS" == "1" ]]; then
-  echo "    Backups:   ALL *.backup-* under the above paths (will be deleted after processing)"
-fi
-
-# Show what would be restored vs removed
-if [[ "$NO_RESTORE" != "1" ]]; then
-  echo ""
-  info "Restore plan (oldest backup wins):"
-  for f in language.md agent-teams.md skill-activation.md; do
-    bk="$(oldest_backup "$RULES_DIR/$f")"
-    if [[ -n "$bk" ]]; then echo "    ✓ $f ← $(basename "$bk")"; else echo "    ✗ $f (no backup → will be removed)"; fi
-  done
-  if [[ -d "$RULES_DIR/stacks" ]]; then
-    bk="$(oldest_backup "$RULES_DIR/stacks")"
-    if [[ -n "$bk" ]]; then echo "    ✓ stacks/ ← $(basename "$bk")"; else echo "    ✗ stacks/ (no backup → will be removed)"; fi
-  fi
-  for sk in "${PS_SKILLS[@]}"; do
-    bk="$(oldest_backup "$SKILLS_DIR/$sk")"
-    if [[ -n "$bk" ]]; then echo "    ✓ $sk ← $(basename "$bk")"; else echo "    ✗ $sk (no backup → will be removed)"; fi
-  done
-  bk="$(oldest_backup "$CLAUDE_MD")"
-  if [[ -n "$bk" ]]; then echo "    ✓ CLAUDE.md ← $(basename "$bk")"; else echo "    ✗ CLAUDE.md (no backup → strip managed block only)"; fi
-fi
-echo ""
-
-confirm "Proceed?" || { echo "Cancelled."; exit 0; }
-
-# ---------- Execute ----------
-for f in language.md agent-teams.md skill-activation.md; do
-  restore_or_remove "$RULES_DIR/$f"
-done
-
-# stacks/ directory: restore wholesale or remove
-restore_or_remove "$RULES_DIR/stacks"
-
-# rules/ dir cleanup (only if empty after processing)
-[[ -d "$RULES_DIR" ]] && [[ -z "$(ls -A "$RULES_DIR" 2>/dev/null)" ]] && rmdir "$RULES_DIR" && ok "Removed empty $RULES_DIR"
-
-# Skills
-for sk in "${PS_SKILLS[@]}"; do
-  restore_or_remove "$SKILLS_DIR/$sk"
-done
-
-# CLAUDE.md
-restore_or_strip_claude_md
-
-# Project scope: clean up empty .claude dir
-if [[ "$SCOPE" == "project" ]] && [[ -d "$CLAUDE_DIR" ]] && [[ -z "$(ls -A "$CLAUDE_DIR" 2>/dev/null)" ]]; then
-  rmdir "$CLAUDE_DIR"
-  ok "Removed empty $CLAUDE_DIR"
-fi
-
-# ---------- Optional: purge timestamped backups ----------
-if [[ "$PURGE_BACKUPS" == "1" ]]; then
+# ---------- Purge backups helper ----------
+purge_backups() {
   info "Purging timestamped backups (*.backup-*)..."
-  BACKUP_PARENTS=(
-    "$CLAUDE_DIR"
-    "$RULES_DIR"
-    "$RULES_DIR/stacks"
-    "$SKILLS_DIR"
+  local parents=(
+    "$CLAUDE_DIR" "$RULES_DIR" "$RULES_DIR/stacks" "$SKILLS_DIR"
   )
-  if [[ "$SCOPE" == "project" ]]; then
-    BACKUP_PARENTS+=("$PROJECT_ROOT")
-  fi
-  for parent in "${BACKUP_PARENTS[@]}"; do
+  if [[ "$SCOPE" == "project" ]]; then parents+=("$PROJECT_ROOT"); fi
+  for parent in "${parents[@]}"; do
     [[ -d "$parent" ]] || continue
     while IFS= read -r -d '' bak; do
       rm -rf "$bak"
       ok "Purged: $bak"
     done < <(find "$parent" -maxdepth 1 -name '*.backup-*' -print0 2>/dev/null)
   done
+}
+
+# ---------- Main: manifest-based uninstall ----------
+if [[ -f "$MANIFEST" ]]; then
+  # Read key fields from manifest
+  PRE_EXISTING="$(grep '^claude_md_existed_before=' "$MANIFEST" | head -1 | cut -d= -f2)"
+  : "${PRE_EXISTING:=true}"
+
+  info "Scope: $SCOPE (mode: manifest-based)"
+  info "Manifest: $MANIFEST"
+  info "CLAUDE.md existed before install: $PRE_EXISTING"
+
+  # Count what's in the manifest
+  file_count="$(grep -c '^file:' "$MANIFEST" 2>/dev/null || true)"
+  dir_count="$(grep -c '^dir:' "$MANIFEST" 2>/dev/null || true)"
+  : "${file_count:=0}"
+  : "${dir_count:=0}"
+  info "Manifest contents: $file_count file(s), $dir_count dir(s)"
+  if [[ "$PURGE_BACKUPS" == "1" ]]; then
+    warn "Will also purge *.backup-* files"
+  fi
+  echo ""
+
+  confirm "Proceed?" || { echo "Cancelled."; exit 0; }
+
+  # Remove files
+  while IFS= read -r line; do
+    case "$line" in
+      file:*)
+        path="${line#file:}"
+        if [[ -f "$path" ]]; then
+          rm -f "$path"
+          ok "Removed file: $path"
+        fi
+        ;;
+      dir:*)
+        path="${line#dir:}"
+        if [[ -d "$path" ]]; then
+          rm -rf "$path"
+          ok "Removed dir:  $path"
+        fi
+        ;;
+    esac
+  done < "$MANIFEST"
+
+  # Clean empty dirs we created
+  for d in "$RULES_DIR/stacks" "$RULES_DIR" "$SKILLS_DIR"; do
+    [[ -d "$d" ]] && [[ -z "$(ls -A "$d" 2>/dev/null)" ]] && rmdir "$d" && ok "Removed empty $d"
+  done
+
+  # CLAUDE.md handling
+  strip_managed_block "$CLAUDE_MD" "$PRE_EXISTING"
+
+  # Remove manifest itself
+  rm -f "$MANIFEST"
+  ok "Removed manifest"
+
+  # Project scope: clean empty .claude/
+  if [[ "$SCOPE" == "project" ]] && [[ -d "$CLAUDE_DIR" ]] && [[ -z "$(ls -A "$CLAUDE_DIR" 2>/dev/null)" ]]; then
+    rmdir "$CLAUDE_DIR"
+    ok "Removed empty $CLAUDE_DIR"
+  fi
+
+else
+  # ---------- Fallback for installs that predate the manifest ----------
+  warn "No manifest at $MANIFEST"
+  warn "Falling back to known-paths cleanup (legacy install). The installer's"
+  warn "earlier versions did not record what they created, so this path can only"
+  warn "remove known file names — anything custom under those paths is preserved."
+  echo ""
+  confirm "Proceed with fallback cleanup?" || { echo "Cancelled."; exit 0; }
+
+  for f in language.md agent-teams.md skill-activation.md; do
+    [[ -f "$RULES_DIR/$f" ]] && rm -f "$RULES_DIR/$f" && ok "Removed $RULES_DIR/$f"
+  done
+  [[ -d "$RULES_DIR/stacks" ]] && rm -rf "$RULES_DIR/stacks" && ok "Removed $RULES_DIR/stacks/"
+  for sk in new-project-bootstrap setup-secrets; do
+    [[ -d "$SKILLS_DIR/$sk" ]] && rm -rf "$SKILLS_DIR/$sk" && ok "Removed skill: $sk"
+  done
+  for d in "$RULES_DIR" "$SKILLS_DIR"; do
+    [[ -d "$d" ]] && [[ -z "$(ls -A "$d" 2>/dev/null)" ]] && rmdir "$d"
+  done
+  # Without a manifest we can't know if CLAUDE.md pre-existed; safest: strip block, keep file
+  strip_managed_block "$CLAUDE_MD" "true"
+  if [[ "$SCOPE" == "project" ]] && [[ -d "$CLAUDE_DIR" ]] && [[ -z "$(ls -A "$CLAUDE_DIR" 2>/dev/null)" ]]; then
+    rmdir "$CLAUDE_DIR"
+  fi
+fi
+
+# ---------- Optional: purge backups ----------
+if [[ "$PURGE_BACKUPS" == "1" ]]; then
+  purge_backups
 else
   warn "Backups preserved. To also delete them: PURGE_BACKUPS=1 SCOPE=$SCOPE bash scripts/uninstall.sh"
 fi
 
-ok "Uninstall complete (scope: $SCOPE, mode: $([[ "$NO_RESTORE" == "1" ]] && echo NO_RESTORE || echo RESTORE))"
+ok "Uninstall complete (scope: $SCOPE)"

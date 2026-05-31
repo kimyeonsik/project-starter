@@ -246,54 +246,46 @@ SCOPE=global bash ~/projects/project-starter/scripts/uninstall.sh
 SCOPE=global bash <(curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/uninstall.sh)
 ```
 
-### Default behavior: restore (revert to pre-install state)
+### How it works: manifest-based removal
 
-By default, `uninstall.sh` **restores files from the oldest backup** taken at install time. The idea is "undo = put it back the way it was."
+At install time, the installer writes a manifest at `<claude_dir>/.project-starter-manifest` listing every file and directory it created. `uninstall.sh` reads that manifest and removes **exactly** those paths — nothing else.
 
-For each target:
-- **Has a backup** → restore from the oldest `*.backup-*` (= state before the very first install)
-- **No backup** → simply remove (the installer created it from scratch)
+Result:
+- Anything you put under those paths yourself is **untouched**
+- Your pre-existing `CLAUDE.md` content stays; only the `<!-- BEGIN/END project-starter -->` block is stripped
+- If `CLAUDE.md` didn't exist before install, it's removed when empty
+- Multiple installs leave a clean state on uninstall (no stale files from earlier runs)
 
-Any manual edits you made to managed files after install will be overwritten by the restored backup.
+If the manifest is missing (e.g. an install from before this mechanism existed), `uninstall.sh` falls back to removing known file names and warns about it.
 
 ### What gets touched
 
 | Item | Scope=project | Scope=global |
 |---|---|---|
-| Rules | `./.claude/rules/{language,agent-teams,skill-activation}.md` | `~/.claude/rules/{language,agent-teams,skill-activation}.md` |
-| Stack rules | `./.claude/rules/stacks/` | `~/.claude/rules/stacks/` |
-| Bootstrap skill | `./.claude/skills/new-project-bootstrap/` | `~/.agents/skills/new-project-bootstrap/` |
-| `CLAUDE.md` | `./CLAUDE.md` (restored from oldest backup, or removed if empty after stripping managed block) | `~/.claude/CLAUDE.md` (restored from oldest backup, or managed block stripped if no backup) |
+| Rules | `./.claude/rules/{language,agent-teams,skill-activation}.md` | `~/.claude/rules/{...}` |
+| Stack rules | `./.claude/rules/stacks/*.md` | `~/.claude/rules/stacks/*.md` |
+| Skills | `./.claude/skills/new-project-bootstrap/`, `./.claude/skills/setup-secrets/` | `~/.agents/skills/new-project-bootstrap/`, `~/.agents/skills/setup-secrets/` |
+| Manifest | `./.claude/.project-starter-manifest` (removed last) | `~/.claude/.project-starter-manifest` |
+| `CLAUDE.md` | managed block stripped; file removed if it didn't exist before install | managed block stripped; file preserved if other content remains |
 
 ### What's preserved
 
-- All `*.backup-<timestamp>` files (still on disk after restore, in case you want them — use `PURGE_BACKUPS=1` to delete)
-- Any unrelated content in target directories
+- All `*.backup-<timestamp>` files (kept on disk as a safety net — use `PURGE_BACKUPS=1` to delete)
+- Anything inside install dirs that the installer didn't create (custom files, your edits outside the managed block)
 - Shell config, MCP server configs, other Claude Code settings
-
-### Legacy mode: NO_RESTORE (just remove the managed pieces)
-
-If you want the old behavior — just delete the installer's files and strip the managed block, without touching backups for restore:
-
-```bash
-NO_RESTORE=1 SCOPE=global bash ~/projects/project-starter/scripts/uninstall.sh
-```
 
 ### Complete teardown (everything including backups + cloned source)
 
 ```bash
-# 1. Uninstall (restores from backups) AND purge those backups afterward
+# Uninstall and purge timestamped backups in one go, for each scope you used
 PURGE_BACKUPS=1 SCOPE=project bash ~/projects/project-starter/scripts/uninstall.sh
-PURGE_BACKUPS=1 SCOPE=global bash ~/projects/project-starter/scripts/uninstall.sh
+PURGE_BACKUPS=1 SCOPE=global  bash ~/projects/project-starter/scripts/uninstall.sh
 
-# Or skip restore entirely and just nuke everything:
-NO_RESTORE=1 PURGE_BACKUPS=1 SCOPE=global bash ~/projects/project-starter/scripts/uninstall.sh
-
-# 2. Remove the cloned source repo
+# Then remove the cloned source repo
 rm -rf ~/projects/project-starter
 ```
 
-`PURGE_BACKUPS=1` deletes timestamped `*.backup-*` files only in install target directories — it never touches anything else.
+`PURGE_BACKUPS=1` deletes `*.backup-*` files only in the install target directories — it never touches anything else.
 
 ### Verify clean removal
 

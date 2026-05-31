@@ -90,10 +90,24 @@ else
   IMPORT_PREFIX=".claude/rules"
 fi
 
+MANIFEST="$CLAUDE_DIR/.project-starter-manifest"
+
+# Capture original CLAUDE.md existence — only on the very first install.
+# Subsequent re-installs preserve the value from the existing manifest, so a
+# user who started with no CLAUDE.md keeps that fact recorded forever.
+if [[ -f "$MANIFEST" ]] && grep -q '^claude_md_existed_before=' "$MANIFEST" 2>/dev/null; then
+  PRE_EXISTING_CLAUDE_MD="$(grep '^claude_md_existed_before=' "$MANIFEST" | head -1 | cut -d= -f2)"
+elif [[ -f "$CLAUDE_MD" ]]; then
+  PRE_EXISTING_CLAUDE_MD=true
+else
+  PRE_EXISTING_CLAUDE_MD=false
+fi
+
 info "Target paths:"
 echo "    Rules:     $RULES_DIR"
 echo "    Skills:    $SKILLS_DIR"
 echo "    CLAUDE.md: $CLAUDE_MD"
+echo "    Manifest:  $MANIFEST"
 
 # ---------- Language selection ----------
 LANG_CHOICE="${LANG_CHOICE:-}"
@@ -177,6 +191,7 @@ fi
 info "Installing skills to $SKILLS_DIR..."
 mkdir -p "$SKILLS_DIR"
 
+INSTALLED_SKILL_DIRS=()
 for skill_dir in "$REPO_DIR/skills/"*/; do
   skill_name="$(basename "$skill_dir")"
   dest="$SKILLS_DIR/$skill_name"
@@ -184,8 +199,35 @@ for skill_dir in "$REPO_DIR/skills/"*/; do
   cp -R "$skill_dir" "$dest"
   # Ensure any shell scripts shipped inside the skill are executable
   find "$dest" -maxdepth 2 -type f -name "*.sh" -exec chmod +x {} \;
+  INSTALLED_SKILL_DIRS+=("$dest")
   ok "Skill installed: $skill_name"
 done
+
+# ---------- Write manifest ----------
+info "Writing manifest..."
+{
+  echo "# project-starter install manifest (do not edit by hand)"
+  echo "version=1"
+  echo "scope=$SCOPE"
+  echo "installed_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  echo "claude_md_existed_before=$PRE_EXISTING_CLAUDE_MD"
+  echo "claude_md_path=$CLAUDE_MD"
+  echo "rules_dir=$RULES_DIR"
+  echo "skills_dir=$SKILLS_DIR"
+  # Files we own (rules root + each stack)
+  for f in language.md agent-teams.md skill-activation.md; do
+    echo "file:$RULES_DIR/$f"
+  done
+  for f in "$REPO_DIR/claude-rules/stacks/"*.md; do
+    echo "file:$RULES_DIR/stacks/$(basename "$f")"
+  done
+  # Skill directories we own
+  for d in "${INSTALLED_SKILL_DIRS[@]}"; do
+    echo "dir:$d"
+  done
+} > "$MANIFEST"
+chmod 600 "$MANIFEST"
+ok "Manifest written"
 
 # ---------- Done ----------
 echo ""
