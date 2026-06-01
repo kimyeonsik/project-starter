@@ -25,14 +25,11 @@ You'll be prompted to choose, or you can preset `SCOPE=project` / `SCOPE=global`
 
 ### One-liner (project scope, default)
 
-Run from the directory you want to install into:
-
 ```bash
-cd ~/projects/my-app
 bash <(curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.sh)
 ```
 
-Wherever you are when you run this, the install lands in **that** directory.
+> **About the install path:** project scope installs into your **current working directory** — wherever your shell is when you run the command. So `cd` into the target project first (e.g. `cd ~/projects/my-app`), or skip the `cd` and pass an explicit directory with `PROJECT_ROOT=~/projects/my-app` (see [Common options](#common-options)). No `cd` is baked into the one-liner so you can copy-paste it as-is.
 
 ### One-liner (global scope, explicit)
 
@@ -58,9 +55,10 @@ SCOPE=project PROJECT_ROOT=~/projects/my-app LANG_CHOICE=en \
 
 ```bash
 git clone https://github.com/kimyeonsik/project-starter ~/projects/project-starter
-cd ~/path/to/your-project
-SCOPE=project bash ~/projects/project-starter/scripts/install.sh
+SCOPE=project PROJECT_ROOT=~/projects/my-app bash ~/projects/project-starter/scripts/install.sh
 ```
+
+> **About the install path:** set `PROJECT_ROOT` to the project you want to install into (shown above), or omit it and `cd` into that project first — project scope installs into `PROJECT_ROOT` if set, otherwise the current working directory.
 
 ### What the installer does
 
@@ -223,11 +221,11 @@ Use the `setup-secrets` skill (`skills/setup-secrets/setup-secrets.sh`) to injec
 
 Installed as a skill at `~/.agents/skills/setup-secrets/` (global scope) or `./.claude/skills/setup-secrets/` (project scope).
 
+> **About the path:** the script writes `.env.local` into your **current working directory**, so run it from the project root where the file should live (or point it elsewhere with `ENV_FILE=...`, see [Other env vars](#other-env-vars)). The commands below have no `cd` baked in so you can copy-paste them as-is.
+
 ### Interactive menu
 
 ```bash
-cd ~/projects/<your-project>
-
 # Global scope install:
 bash ~/.agents/skills/setup-secrets/setup-secrets.sh
 
@@ -260,7 +258,6 @@ DRY_RUN=1 bash ...                    # preview without writing
 ### Remote one-liner (no install needed)
 
 ```bash
-cd ~/projects/<your-project>
 bash <(curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/main/skills/setup-secrets/setup-secrets.sh)
 ```
 
