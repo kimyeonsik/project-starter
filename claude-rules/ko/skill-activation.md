@@ -13,7 +13,7 @@
 **스킬 체인** (순차):
 1. `mattpocock/skills@grill-me` — 요구사항 grill (집요한 인터뷰)
 2. `obra/superpowers@brainstorming` — 창의 탐색, 의도/타겟/제약
-3. `vercel-labs/agent-skills@find-skills` — 도메인에 필요한 추가 스킬 검색
+3. `vercel-labs/skills@find-skills` — 도메인에 필요한 추가 스킬 검색
 
 산출물: 컨셉 메모 / `CONTEXT.md` 초안
 
@@ -67,7 +67,7 @@
 | 체계적 디버깅 | `obra/superpowers@systematic-debugging` |
 | E2E 자동화 | `anthropics/skills@webapp-testing` (Playwright) |
 | 접근성 점검 | `addyosmani/web-quality-skills@accessibility` |
-| Surgical 리팩토링 | `mattpocock/skills@refactor` |
+| Surgical 리팩토링 | `github/awesome-copilot@refactor` |
 | 리팩토링 RFC + 이슈 | `mattpocock/skills@request-refactor-plan` |
 | 변경분 점검 | `simplify` |
 | AI 슬롭 정리 | `omc:ai-slop-cleaner` |
@@ -134,7 +134,7 @@ npx skills list -g
 
 핵심 스킬 누락 확인:
 ```bash
-npx skills list -g | grep -E "brainstorm|writing-plans|test-driven|systematic-debug|verification|grill-me|find-skills|frontend-design|improve-codebase|refactor"
+npx skills list -g | grep -E "brainstorm|writing-plans|test-driven|systematic-debug|verification|requesting-code-review|grill-me|find-skills|frontend-design|improve-codebase|refactor"
 ```
 
-11개 일치하면 essential 번들 정상. 누락이 있으면 `project-starter/scripts/install.sh`를 essential 또는 full 번들로 재실행 권장.
+12개 일치하면 essential 번들 정상 (`refactor` 패턴이 `refactor`와 `request-refactor-plan` 둘 다 매칭). 누락이 있으면 `project-starter/scripts/install.sh`를 essential 또는 full 번들로 재실행 권장.

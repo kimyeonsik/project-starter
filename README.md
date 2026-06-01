@@ -95,9 +95,9 @@ Or pick at the install prompt.
 
 | Stage | Skill |
 |---|---|
-| Discovery | `mattpocock/skills@grill-me`, `vercel-labs/agent-skills@find-skills`, `obra/superpowers@brainstorming`, `obra/superpowers@writing-plans` |
+| Discovery | `mattpocock/skills@grill-me`, `vercel-labs/skills@find-skills`, `obra/superpowers@brainstorming`, `obra/superpowers@writing-plans` |
 | Implementation | `obra/superpowers@test-driven-development` |
-| Quality | `obra/superpowers@systematic-debugging`, `mattpocock/skills@improve-codebase-architecture`, `mattpocock/skills@refactor` |
+| Quality | `obra/superpowers@systematic-debugging`, `mattpocock/skills@improve-codebase-architecture`, `github/awesome-copilot@refactor` (surgical), `mattpocock/skills@request-refactor-plan` (RFC/plan) |
 | Pre-deploy | `obra/superpowers@verification-before-completion`, `obra/superpowers@requesting-code-review` |
 | Design | `anthropics/skills@frontend-design` |
 

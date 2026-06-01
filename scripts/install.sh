@@ -33,7 +33,7 @@ if [[ "${SKIP_PREREQ:-0}" == "1" ]]; then
 else
   info "Checking prerequisites..."
   MISSING=()
-  for cmd in node pnpm git; do
+  for cmd in node git; do
     if ! command -v "$cmd" >/dev/null 2>&1; then
       MISSING+=("$cmd")
     fi
@@ -50,6 +50,34 @@ else
   if [[ "$NODE_MAJOR" -lt 20 ]]; then
     warn "Node $NODE_MAJOR detected. Bootstrap skill requires Node 20+."
   fi
+
+  # pnpm: auto-provision if absent (Corepack first, npm fallback).
+  if ! command -v pnpm >/dev/null 2>&1; then
+    warn "pnpm not found — attempting to provision it..."
+    # Corepack ships with Node 16.10+ and is the recommended way to get pnpm.
+    if command -v corepack >/dev/null 2>&1; then
+      info "  Enabling pnpm via Corepack..."
+      corepack enable pnpm >/dev/null 2>&1 || corepack enable >/dev/null 2>&1 || true
+      corepack prepare pnpm@latest --activate >/dev/null 2>&1 || true
+    fi
+    # Fallback: global npm install.
+    if ! command -v pnpm >/dev/null 2>&1; then
+      info "  Corepack unavailable or blocked; trying 'npm i -g pnpm'..."
+      npm i -g pnpm >/dev/null 2>&1 || true
+    fi
+    if command -v pnpm >/dev/null 2>&1; then
+      ok "pnpm provisioned ($(pnpm --version 2>/dev/null || echo 'version unknown'))"
+    else
+      err "Could not install pnpm automatically."
+      err "Install it manually with either:"
+      err "  corepack enable && corepack prepare pnpm@latest --activate"
+      err "  npm i -g pnpm"
+      err "(may require sudo depending on your Node install). See docs/prereq.md."
+      err "To bypass (not recommended): SKIP_PREREQ=1 bash scripts/install.sh"
+      exit 1
+    fi
+  fi
+
   ok "Prerequisites OK"
 fi
 
@@ -135,10 +163,11 @@ ESSENTIAL_SKILLS=(
   "obra/superpowers@verification-before-completion"
   "obra/superpowers@requesting-code-review"
   "mattpocock/skills@grill-me"
-  "vercel-labs/agent-skills@find-skills"
+  "vercel-labs/skills@find-skills"
   "anthropics/skills@frontend-design"
   "mattpocock/skills@improve-codebase-architecture"
-  "mattpocock/skills@refactor"
+  "github/awesome-copilot@refactor"
+  "mattpocock/skills@request-refactor-plan"
 )
 WEB_SKILLS=(
   "vercel-labs/agent-skills@vercel-react-best-practices"
@@ -192,22 +221,29 @@ check_network() {
   return 1
 }
 
-# Try to install one external skill. Echoes "ok" or "fail" via return code.
-# On failure, prints up to 3 alternative suggestions from skills.sh.
+# Try to install one external skill. Returns 0 on success, 1 on failure.
+# Bundle entries use the form "owner/repo@skill"; the skills.sh CLI takes the
+# repo as <source> and the skill name via --skill, so we split on the last '@'.
+# On failure, lists the repo's actually-available skills for manual review.
 install_one_external() {
-  local pkg="$1" search_key
-  if npx --yes skills add "$pkg" -g -y >/dev/null 2>&1; then
-    ok "  $pkg"
+  local spec="$1" source skill
+  source="${spec%@*}"   # owner/repo
+  skill="${spec##*@}"   # skill name
+  if npx --yes skills add "$source" --skill "$skill" -g -y >/dev/null 2>&1; then
+    ok "  $spec"
     return 0
   fi
-  warn "  $pkg — install failed (may be removed/renamed)"
-  # Try suggesting alternatives by searching the skill name
-  search_key="${pkg##*@}"
-  local suggestions
-  if suggestions="$(npx --yes skills find "$search_key" 2>/dev/null | grep -E '^[a-zA-Z]' | head -3)"; then
-    if [[ -n "$suggestions" ]]; then
-      echo "    Possible alternatives (manual review):"
-      echo "$suggestions" | sed 's/^/      /'
+  warn "  $spec — install failed (skill may be removed/renamed, or wrong repo)"
+  # List what the repo actually offers so the user can correct the mapping
+  local available
+  if available="$(npx --yes skills add "$source" -l -y 2>/dev/null \
+      | sed -E 's/\x1b\[[0-9;?]*[a-zA-Z]//g' \
+      | grep -E '^│[[:space:]]+[a-z]' \
+      | sed -E 's/^│[[:space:]]+/      /' \
+      | head -8)"; then
+    if [[ -n "$available" ]]; then
+      echo "    Available skills in $source:"
+      echo "$available"
     fi
   fi
   return 1

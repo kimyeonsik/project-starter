@@ -13,7 +13,7 @@ Goal: connect idea → design → implementation → verification → deploy so 
 **Skill chain** (sequential):
 1. `mattpocock/skills@grill-me` — relentlessly grill requirements
 2. `obra/superpowers@brainstorming` — creative exploration: intent, target, constraints
-3. `vercel-labs/agent-skills@find-skills` — find additional skills needed for the domain
+3. `vercel-labs/skills@find-skills` — find additional skills needed for the domain
 
 Output: concept memo / draft `CONTEXT.md`.
 
@@ -67,7 +67,7 @@ Output: working scaffold + `_team/`, `docs/adr/`, `CLAUDE.md`.
 | Systematic debugging | `obra/superpowers@systematic-debugging` |
 | E2E automation | `anthropics/skills@webapp-testing` (Playwright) |
 | Accessibility audit | `addyosmani/web-quality-skills@accessibility` |
-| Surgical refactor | `mattpocock/skills@refactor` |
+| Surgical refactor | `github/awesome-copilot@refactor` |
 | Refactor RFC + issue | `mattpocock/skills@request-refactor-plan` |
 | Review of changed code | `simplify` |
 | Clean AI slop | `omc:ai-slop-cleaner` |
@@ -134,7 +134,7 @@ npx skills list -g
 
 Quick check for the essential bundle:
 ```bash
-npx skills list -g | grep -E "brainstorm|writing-plans|test-driven|systematic-debug|verification|grill-me|find-skills|frontend-design|improve-codebase|refactor"
+npx skills list -g | grep -E "brainstorm|writing-plans|test-driven|systematic-debug|verification|requesting-code-review|grill-me|find-skills|frontend-design|improve-codebase|refactor"
 ```
 
-11 matches = essential bundle is complete. Missing entries → re-run `project-starter/scripts/install.sh` with `SKILL_BUNDLE=essential` (or `full`).
+12 matches = essential bundle is complete (`refactor` matches both `refactor` and `request-refactor-plan`). Missing entries → re-run `project-starter/scripts/install.sh` with `SKILL_BUNDLE=essential` (or `full`).
