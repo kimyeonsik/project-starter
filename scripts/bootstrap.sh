@@ -66,4 +66,10 @@ export SCOPE
 
 info "Running installer (scope: $SCOPE${PROJECT_ROOT:+, project root: $PROJECT_ROOT})..."
 cd "$TARGET"
-bash scripts/install.sh
+# The installer is cross-platform Node (scripts/install.mjs). Prefer node so the
+# bash<->node boundary stays the same on macOS / Linux / WSL / Git Bash.
+if command -v node >/dev/null 2>&1; then
+  exec node scripts/install.mjs
+else
+  exec bash scripts/install.sh
+fi

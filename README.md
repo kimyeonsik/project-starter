@@ -14,6 +14,8 @@ Designed to replicate a consistent dev environment across machines in one comman
 
 ## Install
 
+> **Cross-platform:** the installer is plain Node.js (`scripts/install.mjs`) and runs on **macOS, Linux, and Windows** with only Node 20+ and git. The `bash`/`curl` one-liners below work on macOS, Linux, WSL, and Git Bash; **native Windows (PowerShell)** users use the [PowerShell one-liner](#windows-powershell). The `.sh` scripts are thin shims that simply call `node` on the `.mjs` engine.
+
 ### Scope: project (default) vs global
 
 Two install scopes are supported:
@@ -37,6 +39,26 @@ bash <(curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/m
 SCOPE=global bash <(curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.sh)
 ```
 
+<a name="windows-powershell"></a>
+### One-liner (Windows / PowerShell)
+
+Native Windows has no `bash`, so use the PowerShell bootstrap. It clones the repo and runs the same Node installer:
+
+```powershell
+# project scope (default) — installs into the current directory
+irm https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.ps1 | iex
+
+# global scope — set the env var first, then pipe
+$env:SCOPE="global"; irm https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.ps1 | iex
+
+# pre-select options (skips prompts)
+$env:LANG_CHOICE="ko"; $env:SKILL_BUNDLE="essential"; irm https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.ps1 | iex
+```
+
+> Requires **Node 20+** and **git** on PATH (`winget install OpenJS.NodeJS.LTS` and `winget install Git.Git`). PowerShell env-var syntax is `$env:NAME="value"; <command>`.
+>
+> WSL2 and Git Bash users can use the bash one-liners above instead — they behave identically.
+
 ### Common options
 
 ```bash
@@ -54,8 +76,16 @@ SCOPE=project PROJECT_ROOT=~/projects/my-app LANG_CHOICE=en \
 ### Manual (clone first)
 
 ```bash
+# macOS / Linux / WSL / Git Bash
 git clone https://github.com/kimyeonsik/project-starter ~/projects/project-starter
 SCOPE=project PROJECT_ROOT=~/projects/my-app bash ~/projects/project-starter/scripts/install.sh
+```
+
+```powershell
+# Windows / PowerShell — runs the Node installer directly
+git clone https://github.com/kimyeonsik/project-starter $HOME\projects\project-starter
+$env:SCOPE="project"; $env:PROJECT_ROOT="$HOME\projects\my-app"
+node $HOME\projects\project-starter\scripts\install.mjs
 ```
 
 > **About the install path:** set `PROJECT_ROOT` to the project you want to install into (shown above), or omit it and `cd` into that project first — project scope installs into `PROJECT_ROOT` if set, otherwise the current working directory.
@@ -141,6 +171,16 @@ REMOVE_EXTERNAL=1 SCOPE=global bash ~/projects/project-starter/scripts/uninstall
 
 ## Verify Installation
 
+### Automated lifecycle test (all platforms)
+
+Run the bundled harness — it installs / re-installs / uninstalls into sandboxed temp dirs (project + global scope), asserts parity, checks owner-only file permissions (`chmod 600` on POSIX, `icacls` on Windows), then prints the two manual checks that can't be automated (hidden secret input + remote bootstrap):
+
+```bash
+node scripts/verify.mjs
+```
+
+Works identically on macOS, Linux, WSL, and native Windows (PowerShell / cmd) — same single Node harness as the engine.
+
 ### One-line health check (global scope)
 
 Works in both bash and zsh (uses `find` instead of unsafe globs):
@@ -211,10 +251,10 @@ rm -rf /tmp/ps-verify
 
 ## Secrets Setup (API keys / tokens)
 
-Use the `setup-secrets` skill (`skills/setup-secrets/setup-secrets.sh`) to inject keys into `.env.local` interactively. Why a separate script:
+Use the `setup-secrets` skill (`skills/setup-secrets/setup-secrets.mjs`) to inject keys into `.env.local` interactively. It's cross-platform Node; `setup-secrets.sh` is a thin shim for bash shells. Why a separate script:
 
 - Secrets never get pasted into an AI chat (avoids leakage to logs / transcripts)
-- The script reads with `read -s` (hidden input) and writes the file with `chmod 600`
+- The script reads with hidden (no-echo) input and restricts the file to the owner — `chmod 600` on macOS/Linux, `icacls` on Windows
 - Each service is preceded by **where to get the key**, **what scopes/permissions to choose**, and **what's secret vs public**
 - The script is idempotent — re-running updates existing keys in place, never appends duplicates
 - A timestamped backup of `.env.local` is created on the first write of each run
@@ -226,14 +266,20 @@ Installed as a skill at `~/.agents/skills/setup-secrets/` (global scope) or `./.
 ### Interactive menu
 
 ```bash
-# Global scope install:
-bash ~/.agents/skills/setup-secrets/setup-secrets.sh
+# macOS / Linux / WSL / Git Bash
+bash ~/.agents/skills/setup-secrets/setup-secrets.sh    # global scope install
+bash ./.claude/skills/setup-secrets/setup-secrets.sh    # project scope install
+```
 
-# Project scope install:
-bash ./.claude/skills/setup-secrets/setup-secrets.sh
+```powershell
+# Windows / PowerShell — call the Node script directly
+node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs    # global scope install
+node .\.claude\skills\setup-secrets\setup-secrets.mjs        # project scope install
 ```
 
 You'll see a menu with: Supabase / Vercel / Sentry / Amplitude / Cloudflare / Anthropic / Custom / Validate.
+
+> On Windows, set `SERVICE` / `ENV_FILE` / `DRY_RUN` the PowerShell way before the call, e.g. `$env:SERVICE="supabase"; node ...\setup-secrets.mjs`.
 
 ### One service only (non-interactive entry)
 
@@ -257,8 +303,16 @@ DRY_RUN=1 bash ...                    # preview without writing
 
 ### Remote one-liner (no install needed)
 
+The script is interactive, so it must run from a real file (not piped to stdin, which prompts need). Download to a temp file, then run with Node:
+
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/main/skills/setup-secrets/setup-secrets.sh)
+# macOS / Linux / WSL / Git Bash
+f="$(mktemp)"; curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/main/skills/setup-secrets/setup-secrets.mjs -o "$f"; node "$f"; rm -f "$f"
+```
+
+```powershell
+# Windows / PowerShell
+$f="$env:TEMP\setup-secrets.mjs"; irm https://raw.githubusercontent.com/kimyeonsik/project-starter/main/skills/setup-secrets/setup-secrets.mjs -OutFile $f; node $f; Remove-Item $f
 ```
 
 ### What gets written (per service)
@@ -480,11 +534,17 @@ project-starter/
 │   ├── ko/                      # Korean language rule set
 │   └── stacks/                  # Common (English) stack rules
 ├── skills/
-│   └── new-project-bootstrap/   # The bootstrap skill (SKILL.md)
+│   ├── new-project-bootstrap/   # The bootstrap skill (SKILL.md)
+│   └── setup-secrets/           # setup-secrets.mjs (engine) + .sh shim
 ├── scripts/
-│   ├── bootstrap.sh             # Remote one-liner entry (clone + install)
-│   ├── install.sh               # Local installer
-│   └── uninstall.sh
+│   ├── lib/util.mjs             # Shared cross-platform helpers
+│   ├── install.mjs              # Installer engine (macOS / Linux / Windows)
+│   ├── uninstall.mjs            # Uninstaller engine
+│   ├── bootstrap.sh             # Remote entry — bash / WSL / Git Bash
+│   ├── bootstrap.ps1            # Remote entry — Windows / PowerShell
+│   ├── install.sh               # Thin bash shim → install.mjs
+│   ├── uninstall.sh             # Thin bash shim → uninstall.mjs
+│   └── verify.mjs               # Cross-platform lifecycle verification harness
 └── docs/
     ├── prereq.md
     ├── mcp-setup.md
@@ -503,7 +563,9 @@ See `docs/customization.md`.
 
 | Symptom | Action |
 |---|---|
-| `install.sh: Permission denied` | `chmod +x scripts/install.sh scripts/uninstall.sh scripts/bootstrap.sh` |
+| `install.sh: Permission denied` | `chmod +x scripts/install.sh scripts/uninstall.sh scripts/bootstrap.sh` (macOS/Linux) |
+| Windows: `bash` not recognized | Use the [PowerShell one-liner](#windows-powershell), or run `node scripts/install.mjs` directly |
+| Windows: `running scripts is disabled` (PowerShell) | One-off: `powershell -ExecutionPolicy Bypass -File scripts\bootstrap.ps1`, or `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` |
 | `Node 20+` warning | `brew install node@20` (or use nvm) |
 | Bootstrap skill not auto-activating | Start a new Claude session after install; check `ls ~/.agents/skills/new-project-bootstrap/SKILL.md` |
 | `gh: command not found` | `brew install gh && gh auth login` (only needed for repo creation, not for cloning this project) |

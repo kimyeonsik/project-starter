@@ -20,40 +20,54 @@ description: Interactively inject API keys and tokens into a project's `.env.loc
 
 ## 보안 원칙 (필수)
 
-1. **키는 절대 AI 채팅 / 도구 결과에 노출하지 않는다.** 셸의 `read -s`로 hidden 입력.
-2. 파일은 항상 `chmod 600`.
+1. **키는 절대 AI 채팅 / 도구 결과에 노출하지 않는다.** hidden(no-echo) 입력으로 받는다.
+2. 파일은 항상 소유자 전용 권한 (macOS/Linux `chmod 600`, Windows `icacls`).
 3. `.gitignore`에 `.env.local` 보호 확인 (스킬이 자동 점검).
 4. 디스플레이는 마스킹 (`abcd••••wxyz`)만 사용.
 5. AI가 키 값을 받게 되면 즉시 사용자에게 알리고 그 채널 폐기.
 
 ## 호출 방법 (사용자 환경별)
 
+> **크로스플랫폼:** 실제 스크립트는 `setup-secrets.mjs` (Node, macOS/Linux/Windows 동일). `node <경로>/setup-secrets.mjs`가 어디서나 동작하는 표준 형태다. `setup-secrets.sh`는 bash 셸용 얇은 셰임. 아래는 모두 `node` 형태로 안내하되, Windows에서 `SERVICE=` 같은 환경변수는 PowerShell 문법(`$env:SERVICE="..."; node ...`)으로 바꿔준다.
+
 ### 글로벌 스코프로 설치한 경우
 
 ```bash
-cd ~/projects/<your-project>
-bash ~/.agents/skills/setup-secrets/setup-secrets.sh
+# macOS / Linux / WSL / Git Bash
+node ~/.agents/skills/setup-secrets/setup-secrets.mjs
+```
+```powershell
+# Windows / PowerShell
+node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs
 ```
 
 ### 프로젝트 스코프로 설치한 경우
 
 프로젝트 루트에서:
 ```bash
-bash ./.claude/skills/setup-secrets/setup-secrets.sh
+node ./.claude/skills/setup-secrets/setup-secrets.mjs           # macOS / Linux / WSL
+```
+```powershell
+node .\.claude\skills\setup-secrets\setup-secrets.mjs            # Windows / PowerShell
 ```
 
 ### 클론된 레포에서 직접
 
 ```bash
-cd ~/projects/<your-project>
-bash ~/projects/project-starter/skills/setup-secrets/setup-secrets.sh
+node ~/projects/project-starter/skills/setup-secrets/setup-secrets.mjs
 ```
 
 ### 원격 1줄 (클론 없이)
 
+대화형이라 stdin 파이프가 아닌 실제 파일에서 실행해야 한다. 임시 파일로 받아 실행:
+
 ```bash
-cd ~/projects/<your-project>
-bash <(curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/main/skills/setup-secrets/setup-secrets.sh)
+# macOS / Linux / WSL / Git Bash
+f="$(mktemp)"; curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/main/skills/setup-secrets/setup-secrets.mjs -o "$f"; node "$f"; rm -f "$f"
+```
+```powershell
+# Windows / PowerShell
+$f="$env:TEMP\setup-secrets.mjs"; irm https://raw.githubusercontent.com/kimyeonsik/project-starter/main/skills/setup-secrets/setup-secrets.mjs -OutFile $f; node $f; Remove-Item $f
 ```
 
 ## 환경변수
@@ -76,15 +90,15 @@ bash <(curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/m
 예시 안내문:
 ```
 이 단계에서 키를 주입해야 합니다. AI 채팅에 키를 직접 페이스트하지 마세요.
-대신 새 터미널에서:
+대신 새 터미널에서 (macOS/Linux/WSL):
 
-   SERVICE=supabase bash ~/.agents/skills/setup-secrets/setup-secrets.sh
+   SERVICE=supabase node ~/.agents/skills/setup-secrets/setup-secrets.mjs
 
-셸이 발급 URL, 필요 권한, 보안 주의를 안내합니다. 완료 후:
+Windows / PowerShell:
 
-   SERVICE=validate bash ~/.agents/skills/setup-secrets/setup-secrets.sh
+   $env:SERVICE="supabase"; node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs
 
-로 검증.
+셸이 발급 URL, 필요 권한, 보안 주의를 안내합니다. 완료 후 SERVICE=validate (Windows: $env:SERVICE="validate") 로 검증.
 ```
 
 ## 셸이 처리하는 서비스 (목록만)
@@ -101,12 +115,12 @@ bash <(curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/m
 
 | 장치 | 동작 |
 |---|---|
-| `read -s` | 키 입력 시 화면에 안 보임 |
+| hidden 입력 | 키 입력 시 화면에 안 보임 (no-echo) |
 | 마스킹 표시 | 성공 후 `abcd••••wxyz` 형태로만 확인 |
 | 정규식 검증 | 서비스별 패턴 (Supabase JWT `eyJ`, Anthropic `sk-ant-`, Sentry DSN, Cloudflare token 등) |
 | 3회 재시도 후 skip | 잘못된 형식 반복 시 자동 중단 (부분 저장 안 됨) |
 | 자동 백업 | 세션당 1회 `.env.local.backup-<timestamp>` |
-| `chmod 600` | 작성/유지 시 항상 소유자만 읽기 |
+| 소유자 전용 권한 | 작성/유지 시 항상 소유자만 (`chmod 600` / Windows `icacls`) |
 | Idempotent upsert | 기존 키 → in-place 교체 (append 안 함) |
 | `.gitignore` 자동 점검 | 세션 끝에 `.env.local` 보호 여부 경고 |
 | `DRY_RUN=1` | 입력만 받고 파일 쓰지 않음 (사전 검증용) |
@@ -117,13 +131,15 @@ bash <(curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/m
 
 ```
 부트스트랩 Step 5 (Sentry): [setup-secrets] 스킬을 사용해 키를 주입하세요.
-  SERVICE=sentry bash ~/.agents/skills/setup-secrets/setup-secrets.sh
+  SERVICE=sentry node ~/.agents/skills/setup-secrets/setup-secrets.mjs
+  (Windows: $env:SERVICE="sentry"; node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs)
 ```
 
 ## 검증 (스킬 동작 확인)
 
 ```bash
-DRY_RUN=1 SERVICE=supabase bash ~/.agents/skills/setup-secrets/setup-secrets.sh
+DRY_RUN=1 SERVICE=supabase node ~/.agents/skills/setup-secrets/setup-secrets.mjs
+# Windows: $env:DRY_RUN="1"; $env:SERVICE="supabase"; node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs
 ```
 
 `[dry-run]` 접두어로 어떤 키가 어떤 마스킹 값으로 들어갈지만 출력. 실제 파일은 안 만짐.

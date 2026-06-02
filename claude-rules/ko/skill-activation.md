@@ -132,9 +132,11 @@
 npx skills list -g
 ```
 
-핵심 스킬 누락 확인:
+핵심 스킬 누락 확인 — `npx skills list -g`(모든 OS)를 실행하고 출력에 다음 이름들이 보이는지 확인: `brainstorming`, `writing-plans`, `test-driven-development`, `systematic-debugging`, `verification-before-completion`, `requesting-code-review`, `grill-me`, `find-skills`, `frontend-design`, `improve-codebase-architecture`, `refactor`, `request-refactor-plan`.
+
 ```bash
+# bash/WSL/Git Bash 선택 단축 (Windows엔 grep 없음 — 목록을 직접 확인):
 npx skills list -g | grep -E "brainstorm|writing-plans|test-driven|systematic-debug|verification|requesting-code-review|grill-me|find-skills|frontend-design|improve-codebase|refactor"
 ```
 
-12개 일치하면 essential 번들 정상 (`refactor` 패턴이 `refactor`와 `request-refactor-plan` 둘 다 매칭). 누락이 있으면 `project-starter/scripts/install.sh`를 essential 또는 full 번들로 재실행 권장.
+12개 일치하면 essential 번들 정상 (`refactor` 패턴이 `refactor`와 `request-refactor-plan` 둘 다 매칭). 누락이 있으면 essential 또는 full 번들로 재실행: `node project-starter/scripts/install.mjs` (PowerShell: `$env:SKILL_BUNDLE="essential"; node project-starter/scripts/install.mjs`).
