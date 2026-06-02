@@ -16,52 +16,40 @@ Designed to replicate a consistent dev environment across machines in one comman
 
 ## Install
 
-> **Cross-platform:** the installer is plain Node.js (`scripts/install.mjs`) and runs on **macOS, Linux, and Windows** with only Node 20+ and git. The `bash`/`curl` one-liners below work on macOS, Linux, WSL, and Git Bash; **native Windows (PowerShell)** users use the [PowerShell one-liner](#windows-powershell). The `.sh` scripts are thin shims that simply call `node` on the `.mjs` engine.
+Under the hood the installer is plain Node.js (`scripts/install.mjs`), so behaviour is identical everywhere — only the entry command differs per platform. Pick your platform below.
 
-### Scope: project (default) vs global
+- [macOS / Linux / WSL / Git Bash](#macos--linux--wsl--git-bash)
+- [Windows (PowerShell)](#windows-powershell)
 
-Two install scopes are supported:
+### Install scope: project (default) vs global
+
+This choice is the same on every platform:
 
 - **`project`** (default): installs into the **current directory** — creates `./.claude/rules/`, `./.claude/skills/`, and `./CLAUDE.md`. Does not touch `~/.claude/`. Use this to try the toolkit in a single project, or to keep different rule sets per project.
 - **`global`**: installs into `~/.claude/rules/`, `~/.agents/skills/`, and merges into `~/.claude/CLAUDE.md`. Applies to every Claude session everywhere on your machine.
 
-You'll be prompted to choose, or you can preset `SCOPE=project` / `SCOPE=global`.
+You'll be prompted to choose, or you can preset `SCOPE=project` / `SCOPE=global` (see each platform's options below for the exact syntax).
 
-### One-liner (project scope, default)
+---
+
+<a name="macos--linux--wsl--git-bash"></a>
+### macOS / Linux / WSL / Git Bash
+
+#### One-liner (project scope, default)
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.sh)
 ```
 
-> **About the install path:** project scope installs into your **current working directory** — wherever your shell is when you run the command. So `cd` into the target project first (e.g. `cd ~/projects/my-app`), or skip the `cd` and pass an explicit directory with `PROJECT_ROOT=~/projects/my-app` (see [Common options](#common-options)). No `cd` is baked into the one-liner so you can copy-paste it as-is.
+> **About the install path:** project scope installs into your **current working directory** — wherever your shell is when you run the command. So `cd` into the target project first (e.g. `cd ~/projects/my-app`), or skip the `cd` and pass an explicit directory with `PROJECT_ROOT=~/projects/my-app` (see options below). No `cd` is baked into the one-liner so you can copy-paste it as-is.
 
-### One-liner (global scope, explicit)
+#### One-liner (global scope)
 
 ```bash
 SCOPE=global bash <(curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.sh)
 ```
 
-<a name="windows-powershell"></a>
-### One-liner (Windows / PowerShell)
-
-Native Windows has no `bash`, so use the PowerShell bootstrap. It clones the repo and runs the same Node installer:
-
-```powershell
-# project scope (default) — installs into the current directory
-irm https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.ps1 | iex
-
-# global scope — set the env var first, then pipe
-$env:SCOPE="global"; irm https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.ps1 | iex
-
-# pre-select options (skips prompts)
-$env:LANG_CHOICE="ko"; $env:SKILL_BUNDLE="essential"; irm https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.ps1 | iex
-```
-
-> Requires **Node 20+** and **git** on PATH (`winget install OpenJS.NodeJS.LTS` and `winget install Git.Git`). PowerShell env-var syntax is `$env:NAME="value"; <command>`.
->
-> WSL2 and Git Bash users can use the bash one-liners above instead — they behave identically.
-
-### Common options
+#### Common options
 
 ```bash
 # Clone the source repo to a different location
@@ -75,22 +63,62 @@ SCOPE=project PROJECT_ROOT=~/projects/my-app LANG_CHOICE=en \
   bash <(curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.sh)
 ```
 
-### Manual (clone first)
+#### Manual (clone first)
 
 ```bash
-# macOS / Linux / WSL / Git Bash
 git clone https://github.com/kimyeonsik/project-starter ~/projects/project-starter
 SCOPE=project PROJECT_ROOT=~/projects/my-app bash ~/projects/project-starter/scripts/install.sh
 ```
 
+---
+
+<a name="windows-powershell"></a>
+### Windows (PowerShell)
+
+Native Windows has no `bash`, so use the PowerShell bootstrap — it clones the repo and runs the same Node installer.
+
+> **Prerequisites:** **Node 20+** and **git** on PATH (`winget install OpenJS.NodeJS.LTS` and `winget install Git.Git`). PowerShell env-var syntax is `$env:NAME="value"; <command>` — set them on the same line, before the command.
+>
+> If you have WSL2 or Git Bash, you can use the [macOS / Linux](#macos--linux--wsl--git-bash) commands instead.
+
+#### One-liner (project scope, default)
+
 ```powershell
-# Windows / PowerShell — runs the Node installer directly
+irm https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.ps1 | iex
+```
+
+> **About the install path:** project scope installs into your **current working directory**. `cd` into the target project first, or pass `$env:PROJECT_ROOT` (see options below).
+
+#### One-liner (global scope)
+
+```powershell
+$env:SCOPE="global"; irm https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.ps1 | iex
+```
+
+#### Common options
+
+```powershell
+# Clone the source repo to a different location
+$env:TARGET="$HOME\dev\starter"; irm https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.ps1 | iex
+
+# Pre-select language and skill bundle (skips those prompts)
+$env:LANG_CHOICE="ko"; $env:SKILL_BUNDLE="essential"; irm https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.ps1 | iex
+
+# Fully non-interactive, project scope into a specific directory
+$env:SCOPE="project"; $env:PROJECT_ROOT="$HOME\projects\my-app"; $env:LANG_CHOICE="en"; irm https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.ps1 | iex
+```
+
+> If PowerShell blocks the script (`running scripts is disabled`), run it from a downloaded file instead, or see [Troubleshooting](#troubleshooting).
+
+#### Manual (clone first)
+
+```powershell
 git clone https://github.com/kimyeonsik/project-starter $HOME\projects\project-starter
 $env:SCOPE="project"; $env:PROJECT_ROOT="$HOME\projects\my-app"
 node $HOME\projects\project-starter\scripts\install.mjs
 ```
 
-> **About the install path:** set `PROJECT_ROOT` to the project you want to install into (shown above), or omit it and `cd` into that project first — project scope installs into `PROJECT_ROOT` if set, otherwise the current working directory.
+---
 
 ### What the installer does
 

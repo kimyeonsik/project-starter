@@ -16,52 +16,40 @@
 
 ## 설치
 
-> **크로스플랫폼:** 설치기는 순수 Node.js(`scripts/install.mjs`)이며 Node 20+ 와 git만 있으면 **macOS, Linux, Windows**에서 동작합니다. 아래 `bash`/`curl` 원라이너는 macOS, Linux, WSL, Git Bash에서 동작하고, **순수 Windows(PowerShell)** 사용자는 [PowerShell 원라이너](#windows-powershell)를 씁니다. `.sh` 스크립트들은 `.mjs` 엔진에 `node`를 호출하는 얇은 셰임입니다.
+내부적으로 설치기는 순수 Node.js(`scripts/install.mjs`)라 동작은 어디서나 동일하고, **진입 명령만 플랫폼별로 다릅니다.** 아래에서 본인 플랫폼을 고르세요.
 
-### 스코프: project(기본) vs global
+- [macOS / Linux / WSL / Git Bash](#macos--linux--wsl--git-bash)
+- [Windows (PowerShell)](#windows-powershell)
 
-두 가지 설치 스코프를 지원합니다:
+### 설치 스코프: project(기본) vs global
+
+이 선택은 모든 플랫폼에서 동일합니다:
 
 - **`project`** (기본): **현재 디렉토리**에 설치 — `./.claude/rules/`, `./.claude/skills/`, `./CLAUDE.md` 생성. `~/.claude/`는 건드리지 않음. 단일 프로젝트에서 toolkit을 써보거나 프로젝트별로 규칙을 다르게 두고 싶을 때 사용.
 - **`global`**: `~/.claude/rules/`, `~/.agents/skills/`에 설치하고 `~/.claude/CLAUDE.md`에 병합. 머신의 모든 Claude 세션에 적용.
 
-설치 시 선택 프롬프트가 뜨거나, `SCOPE=project` / `SCOPE=global`로 미리 지정할 수 있습니다.
+설치 시 선택 프롬프트가 뜨거나, `SCOPE=project` / `SCOPE=global`로 미리 지정할 수 있습니다 (정확한 문법은 각 플랫폼 섹션의 옵션 참고).
 
-### 원라이너 (project 스코프, 기본)
+---
+
+<a name="macos--linux--wsl--git-bash"></a>
+### macOS / Linux / WSL / Git Bash
+
+#### 원라이너 (project 스코프, 기본)
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.sh)
 ```
 
-> **설치 경로 안내:** project 스코프는 **현재 작업 디렉토리**(명령을 실행하는 셸의 위치)에 설치됩니다. 따라서 대상 프로젝트로 먼저 `cd`하거나(예: `cd ~/projects/my-app`), `cd` 없이 `PROJECT_ROOT=~/projects/my-app`로 디렉토리를 명시하세요([공통 옵션](#공통-옵션) 참고). 원라이너에는 `cd`가 들어있지 않아 그대로 복사-붙여넣기 할 수 있습니다.
+> **설치 경로 안내:** project 스코프는 **현재 작업 디렉토리**(명령을 실행하는 셸의 위치)에 설치됩니다. 따라서 대상 프로젝트로 먼저 `cd`하거나(예: `cd ~/projects/my-app`), `cd` 없이 `PROJECT_ROOT=~/projects/my-app`로 디렉토리를 명시하세요(아래 옵션 참고). 원라이너에는 `cd`가 들어있지 않아 그대로 복사-붙여넣기 할 수 있습니다.
 
-### 원라이너 (global 스코프, 명시)
+#### 원라이너 (global 스코프)
 
 ```bash
 SCOPE=global bash <(curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.sh)
 ```
 
-<a name="windows-powershell"></a>
-### 원라이너 (Windows / PowerShell)
-
-순수 Windows에는 `bash`가 없으므로 PowerShell 부트스트랩을 사용합니다. 레포를 클론한 뒤 동일한 Node 설치기를 실행합니다:
-
-```powershell
-# project 스코프 (기본) — 현재 디렉토리에 설치
-irm https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.ps1 | iex
-
-# global 스코프 — 환경변수를 먼저 설정한 뒤 파이프
-$env:SCOPE="global"; irm https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.ps1 | iex
-
-# 옵션 미리 선택 (프롬프트 생략)
-$env:LANG_CHOICE="ko"; $env:SKILL_BUNDLE="essential"; irm https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.ps1 | iex
-```
-
-> PATH에 **Node 20+** 와 **git**이 필요합니다 (`winget install OpenJS.NodeJS.LTS`, `winget install Git.Git`). PowerShell 환경변수 문법은 `$env:NAME="value"; <명령>` 입니다.
->
-> WSL2 / Git Bash 사용자는 위의 bash 원라이너를 그대로 써도 동일하게 동작합니다.
-
-### 공통 옵션
+#### 공통 옵션
 
 ```bash
 # 소스 레포를 다른 위치에 클론
@@ -75,22 +63,62 @@ SCOPE=project PROJECT_ROOT=~/projects/my-app LANG_CHOICE=en \
   bash <(curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.sh)
 ```
 
-### 수동 (먼저 클론)
+#### 수동 (먼저 클론)
 
 ```bash
-# macOS / Linux / WSL / Git Bash
 git clone https://github.com/kimyeonsik/project-starter ~/projects/project-starter
 SCOPE=project PROJECT_ROOT=~/projects/my-app bash ~/projects/project-starter/scripts/install.sh
 ```
 
+---
+
+<a name="windows-powershell"></a>
+### Windows (PowerShell)
+
+순수 Windows에는 `bash`가 없으므로 PowerShell 부트스트랩을 사용합니다 — 레포를 클론한 뒤 동일한 Node 설치기를 실행합니다.
+
+> **사전 요구사항:** PATH에 **Node 20+** 와 **git** (`winget install OpenJS.NodeJS.LTS`, `winget install Git.Git`). PowerShell 환경변수 문법은 `$env:NAME="value"; <명령>` — 같은 줄에서 명령 앞에 설정합니다.
+>
+> WSL2 / Git Bash가 있다면 [macOS / Linux](#macos--linux--wsl--git-bash) 명령을 그대로 써도 됩니다.
+
+#### 원라이너 (project 스코프, 기본)
+
 ```powershell
-# Windows / PowerShell — Node 설치기를 직접 실행
+irm https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.ps1 | iex
+```
+
+> **설치 경로 안내:** project 스코프는 **현재 작업 디렉토리**에 설치됩니다. 대상 프로젝트로 먼저 `cd`하거나 `$env:PROJECT_ROOT`를 넘기세요(아래 옵션 참고).
+
+#### 원라이너 (global 스코프)
+
+```powershell
+$env:SCOPE="global"; irm https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.ps1 | iex
+```
+
+#### 공통 옵션
+
+```powershell
+# 소스 레포를 다른 위치에 클론
+$env:TARGET="$HOME\dev\starter"; irm https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.ps1 | iex
+
+# 언어 + 스킬 번들 미리 선택 (해당 프롬프트 생략)
+$env:LANG_CHOICE="ko"; $env:SKILL_BUNDLE="essential"; irm https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.ps1 | iex
+
+# 완전 비대화형, 특정 디렉토리에 project 스코프 설치
+$env:SCOPE="project"; $env:PROJECT_ROOT="$HOME\projects\my-app"; $env:LANG_CHOICE="en"; irm https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/bootstrap.ps1 | iex
+```
+
+> PowerShell이 스크립트를 막으면(`running scripts is disabled`), 파일로 받아 실행하거나 [트러블슈팅](#트러블슈팅)을 참고하세요.
+
+#### 수동 (먼저 클론)
+
+```powershell
 git clone https://github.com/kimyeonsik/project-starter $HOME\projects\project-starter
 $env:SCOPE="project"; $env:PROJECT_ROOT="$HOME\projects\my-app"
 node $HOME\projects\project-starter\scripts\install.mjs
 ```
 
-> **설치 경로 안내:** 설치할 프로젝트를 `PROJECT_ROOT`로 지정하거나(위 예시), 생략하고 그 프로젝트로 먼저 `cd`하세요 — project 스코프는 `PROJECT_ROOT`가 있으면 그곳에, 없으면 현재 작업 디렉토리에 설치합니다.
+---
 
 ### 설치기가 하는 일
 
