@@ -331,6 +331,88 @@ for (const entry of fs.readdirSync(skillsSrc, { withFileTypes: true })) {
   ok(`Skill installed: ${skillName}`);
 }
 
+// ---------- Harden: block agents from reading secret files ----------
+// setup-secrets keeps API keys out of the AI conversation — but that only holds
+// if the agent never reads the secret file afterwards. Advisory text in a skill
+// is not enough (it can be ignored), so we install a HARD guard: permission
+// deny-rules that stop Claude Code's Read/Bash tools from opening .env files and
+// private keys. The setup-secrets script itself keeps working — it reads the
+// file in its own Node process, not through a tool call the rules apply to.
+const SECRET_DENY = [
+  'Read(./.env)',
+  'Read(./.env.*)',
+  'Read(**/.env)',
+  'Read(**/.env.*)',
+  'Read(**/*.pem)',
+  'Read(**/id_rsa)',
+  'Read(**/id_ed25519)',
+  'Bash(printenv:*)',
+];
+const SETTINGS = path.join(CLAUDE_DIR, 'settings.json');
+const settingsOnDisk = exists(SETTINGS);
+// Read the prior manifest once (not yet overwritten at this point) to carry two
+// facts across re-installs:
+//   - settings_existed_before: a re-run would otherwise see the file WE created
+//     and flip this to true, making uninstall keep a file we own.
+//   - prior-owned deny rules: on a re-run nothing is "newly added" (already
+//     present), so without carry-forward the manifest would lose track of which
+//     rules are ours and uninstall would leave them behind.
+let priorManifest = '';
+if (exists(MANIFEST)) priorManifest = fs.readFileSync(MANIFEST, 'utf8');
+const priorLine = (key) => {
+  const l = priorManifest.split('\n').find((x) => x.startsWith(`${key}=`));
+  return l ? l.slice(key.length + 1) : undefined;
+};
+const settingsExistedBefore = priorManifest
+  ? priorLine('settings_existed_before') === 'true'
+  : settingsOnDisk;
+const priorOwned = priorManifest
+  .split('\n')
+  .filter((l) => l.startsWith('settings_deny_added:'))
+  .map((l) => l.slice('settings_deny_added:'.length));
+
+let settingsDenyOwned = []; // the full set of deny rules WE are responsible for
+let settingsTouched = false;
+{
+  info('Hardening secret access (settings.json deny rules)...');
+  let settings = {};
+  let parseOk = true;
+  if (settingsOnDisk) {
+    try {
+      settings = JSON.parse(fs.readFileSync(SETTINGS, 'utf8'));
+      if (typeof settings !== 'object' || settings === null) throw new Error('not an object');
+    } catch {
+      parseOk = false;
+      warn(`Could not parse ${SETTINGS}; leaving it untouched (skipping deny rules).`);
+    }
+  }
+  if (parseOk) {
+    if (settingsOnDisk) backupIfExists(SETTINGS, TS);
+    if (typeof settings.permissions !== 'object' || settings.permissions === null) {
+      settings.permissions = {};
+    }
+    if (!Array.isArray(settings.permissions.deny)) settings.permissions.deny = [];
+    const newlyAdded = [];
+    for (const rule of SECRET_DENY) {
+      if (!settings.permissions.deny.includes(rule)) {
+        settings.permissions.deny.push(rule);
+        newlyAdded.push(rule);
+      }
+    }
+    // We own a rule if we added it now OR on a prior run (carried via priorOwned).
+    // Rules the user had before our first install are never in priorOwned and are
+    // never newly-added, so uninstall will not strip a user's own rule.
+    settingsDenyOwned = Array.from(new Set([...priorOwned, ...newlyAdded])).filter((r) =>
+      SECRET_DENY.includes(r)
+    );
+    fs.mkdirSync(path.dirname(SETTINGS), { recursive: true });
+    fs.writeFileSync(SETTINGS, JSON.stringify(settings, null, 2) + '\n');
+    settingsTouched = true;
+    if (newlyAdded.length) ok(`Added ${newlyAdded.length} secret-file deny rule(s) to settings.json`);
+    else ok('Secret-file deny rules already present');
+  }
+}
+
 // ---------- Write manifest ----------
 info('Writing manifest...');
 const manifestLines = [
@@ -351,6 +433,11 @@ for (const fname of stackFiles) {
 }
 for (const d of installedSkillDirs) {
   manifestLines.push(`dir:${d}`);
+}
+if (settingsTouched) {
+  manifestLines.push(`settings_path=${SETTINGS}`);
+  manifestLines.push(`settings_existed_before=${settingsExistedBefore}`);
+  for (const r of settingsDenyOwned) manifestLines.push(`settings_deny_added:${r}`);
 }
 manifestLines.push(`skill_bundle=${bundle}`);
 for (const sk of installedExternal) manifestLines.push(`external_skill:${sk}`);

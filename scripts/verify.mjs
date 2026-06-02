@@ -147,14 +147,28 @@ section('Project scope: install / re-install / uninstall');
     const perm = ownerOnly(manifest);
     assert('manifest restricted to owner', perm.ok, perm.detail);
 
+    // Secret-access hardening: deny rules merged into settings.json
+    const settings = path.join(T, '.claude', 'settings.json');
+    assert('settings.json created', fs.existsSync(settings));
+    const denyText = read(settings);
+    assert('deny rule for .env files present', denyText.includes('Read(**/.env.*)'));
+    assert('deny rule for private keys present', denyText.includes('Read(**/*.pem)'));
+
     const r2 = runNode(envP, 'scripts/install.mjs');
     assert('re-install exits 0', r2.code === 0);
     assert('still exactly one managed block after re-install', countMatches(claudeMd, '<!-- BEGIN project-starter -->') === 1);
+    {
+      // Idempotent: deny rules not duplicated on re-run
+      const deny = JSON.parse(read(settings))?.permissions?.deny ?? [];
+      const envRule = deny.filter((r) => r === 'Read(**/.env.*)').length;
+      assert('deny rules not duplicated on re-install', envRule === 1);
+    }
 
     const r3 = runNode({ SCOPE: 'project', PROJECT_ROOT: T }, 'scripts/uninstall.mjs', { stdin: 'y\n' });
     assert('uninstall exits 0', r3.code === 0, r3.output.split('\n').slice(-3).join(' | '));
     assert('manifest removed', !fs.existsSync(manifest));
     assert('rules removed', !fs.existsSync(path.join(T, '.claude', 'rules', 'language.md')));
+    assert('settings.json removed (installer-created)', !fs.existsSync(settings));
     assert('CLAUDE.md kept (pre-existed)', fs.existsSync(claudeMd));
     assert('managed block stripped on uninstall', countMatches(claudeMd, '<!-- BEGIN project-starter -->') === 0);
     assert('original content still intact', read(claudeMd).includes('Existing Project Marker'));

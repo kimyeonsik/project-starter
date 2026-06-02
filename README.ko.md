@@ -128,6 +128,7 @@ node $HOME\projects\project-starter\scripts\install.mjs
 - skills.sh의 외부 스킬을 `npx skills`로 설치 (essential / full 번들)
 - 건드린 모든 파일/디렉토리/스킬을 기록한 `.project-starter-manifest` 작성
 - 대상 `CLAUDE.md`에 관리 블록(`<!-- BEGIN project-starter --> ... <!-- END project-starter -->`) 삽입
+- **시크릿 접근 하드닝:** 대상 `settings.json`에 `permissions.deny` 규칙을 병합해 Claude의 Read/Bash 도구가 `.env*` 파일·개인키를 열지 못하게 함 — `setup-secrets`로 저장한 키가 AI 컨텍스트에 들어가지 않도록 ([시크릿 설정](#시크릿-설정-api-키--토큰) 참고)
 - 재실행 시 자가 치유: 새 블록을 쓰기 전에 기존 관리 블록을 먼저 제거하므로 중복 추가가 쌓이지 않음
 
 재실행은 안전하며 멱등(idempotent)합니다.
@@ -284,6 +285,7 @@ rm -rf /tmp/ps-verify
 `setup-secrets` 스킬(`skills/setup-secrets/setup-secrets.mjs`)로 `.env.local`에 키를 대화형으로 주입합니다. 크로스플랫폼 Node이며, `setup-secrets.sh`는 bash 셸용 얇은 셰임입니다. 별도 스크립트로 둔 이유:
 
 - 시크릿이 AI 채팅에 절대 붙여넣어지지 않음 (로그/대화 기록 유출 방지)
+- **에이전트도 파일을 읽지 못함:** 설치기가 `settings.json`에 `permissions.deny` 규칙을 추가해 Claude의 Read/Bash 도구가 `.env*`·개인키를 열 수 없게 함. 붙여넣은 키든 에이전트가 읽은 키든 둘 다 모델 컨텍스트에 들어가는 유출이므로, 권고가 아니라 **읽기 자체를 하드 차단**한다. 실제 값은 런타임(`pnpm dev`, CLI)이 소비하고 코드에선 `process.env.X`로만 참조 — 에이전트는 값을 볼 일이 없다.
 - 숨김(no-echo) 입력으로 받고 파일을 소유자 전용으로 제한 — macOS/Linux는 `chmod 600`, Windows는 `icacls`
 - 각 서비스마다 **키 발급 위치**, **선택할 스코프/권한**, **시크릿 vs 퍼블릭 구분**을 먼저 안내
 - 멱등 — 재실행 시 기존 키를 그 자리에서 교체하고 중복 추가하지 않음
@@ -517,6 +519,7 @@ Select-String "BEGIN project-starter" .\CLAUDE.md -ErrorAction SilentlyContinue
 | 스킬 | `./.claude/skills/new-project-bootstrap/`, `./.claude/skills/setup-secrets/` | `~/.agents/skills/new-project-bootstrap/`, `~/.agents/skills/setup-secrets/` |
 | 매니페스트 | `./.claude/.project-starter-manifest` (마지막에 제거) | `~/.claude/.project-starter-manifest` |
 | `CLAUDE.md` | 관리 블록 제거; 설치 전 없었으면 파일 제거 | 관리 블록 제거; 다른 내용 남아있으면 파일 보존 |
+| `settings.json` | 우리가 추가한 시크릿 deny 규칙만 제거; 나머지 설정은 유지; 설치 전 없었으면 파일 제거 | 동일, `~/.claude/settings.json` |
 
 ### 보존되는 것
 

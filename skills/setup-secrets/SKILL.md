@@ -20,11 +20,28 @@ description: Interactively inject API keys and tokens into a project's `.env.loc
 
 ## 보안 원칙 (필수)
 
-1. **키는 절대 AI 채팅 / 도구 결과에 노출하지 않는다.** hidden(no-echo) 입력으로 받는다.
-2. 파일은 항상 소유자 전용 권한 (macOS/Linux `chmod 600`, Windows `icacls`).
-3. `.gitignore`에 `.env.local` 보호 확인 (스킬이 자동 점검).
-4. 디스플레이는 마스킹 (`abcd••••wxyz`)만 사용.
-5. AI가 키 값을 받게 되면 즉시 사용자에게 알리고 그 채널 폐기.
+이 스킬의 목적은 "키가 **LLM의 컨텍스트(대화)에 들어가지 않게**" 하는 것이다. 키가 컨텍스트에 들어가는 경로는 **(1) 사용자가 채팅에 붙여넣기**, **(2) 에이전트가 파일을 읽기** 두 가지인데, **결과는 동일하다** — 값이 모델 제공자 서버로 전송되고 트랜스크립트/로그에 평문으로 남는다. 그래서 (2)도 (1)만큼, 오히려 자율 반복될 수 있어 더 위험하다.
+
+1. **키 값은 절대 AI 채팅 / 도구 결과에 노출하지 않는다.** hidden(no-echo) 입력으로 받는다.
+2. 🚫 **에이전트는 `.env.local`(및 모든 `.env*`, `*.pem`, 개인키)을 절대 읽지 않는다.** `Read` 도구도, `cat`/`type`/`printenv`/`env`도 금지. 값이 한 번이라도 컨텍스트에 올라오면 이 스킬의 목적이 무력화된다.
+3. **값 확인이 필요하면 오직 `validate`(마스킹 출력)만 사용한다.** `validate`는 형식만 검사하고 `abcd••••wxyz`로 마스킹하므로 컨텍스트에 들어가도 안전하다.
+4. **코드에서는 값이 아니라 참조만 쓴다** — `process.env.SUPABASE_SERVICE_ROLE_KEY` 처럼. 실제 값은 런타임(Next.js/`pnpm dev`/CLI)이 `.env.local`을 직접 로드해 소비하므로 에이전트가 값을 알 필요가 전혀 없다.
+5. 파일은 항상 소유자 전용 권한 (macOS/Linux `chmod 600`, Windows `icacls`).
+6. `.gitignore`에 `.env.local` 보호 확인 (스킬이 자동 점검).
+7. **키 값이 어떤 경로로든 컨텍스트/대화에 노출되면 그 키는 유출된 것**이다 — 사용자에게 즉시 알리고 **반드시 로테이션(재발급)** 하게 한다.
+
+### 하드 가드: 지시문만으로는 부족하다
+
+위 2번은 **지시문이라 무시될 수 있다.** project-starter 설치기는 이를 강제하기 위해, 설치 시 대상 `settings.json`에 **시크릿 파일 읽기를 물리적으로 차단하는 `permissions.deny` 규칙**을 자동으로 병합한다 (`Read(**/.env.*)`, `Read(**/*.pem)`, `Bash(printenv:*)` 등). 따라서 에이전트가 `.env.local`을 `Read` 하려 해도 Claude Code가 차단한다. (setup-secrets 스크립트 자체는 별도 Node 프로세스로 파일을 읽으므로 영향 없이 동작한다.)
+
+- project-starter로 설치하지 않은 프로젝트라면, 같은 deny 규칙을 `.claude/settings.json`에 수동으로 추가하길 권장한다:
+  ```json
+  { "permissions": { "deny": [
+    "Read(./.env)", "Read(./.env.*)", "Read(**/.env)", "Read(**/.env.*)",
+    "Read(**/*.pem)", "Read(**/id_rsa)", "Read(**/id_ed25519)", "Bash(printenv:*)"
+  ] } }
+  ```
+- ⚠️ `cat`/`type` 등 임의 셸로 우회 가능한 여지는 deny 패턴으로 완전히 막기 어렵다. 그래서 가장 확실한 방어는 **애초에 에이전트가 그 값을 알 필요가 없게** 설계하는 것(원칙 4) + 위 deny 규칙(주 벡터인 `Read` 차단)의 조합이다.
 
 ## 호출 방법 (사용자 환경별)
 

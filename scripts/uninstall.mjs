@@ -217,6 +217,32 @@ if (exists(MANIFEST)) {
     );
   }
 
+  // Remove the secret-file deny rules we added to settings.json (and nothing else).
+  const settingsPath = get('settings_path');
+  if (settingsPath && exists(settingsPath)) {
+    const denyAdded = lines
+      .filter((l) => l.startsWith('settings_deny_added:'))
+      .map((l) => l.slice('settings_deny_added:'.length));
+    const settingsExistedBefore = get('settings_existed_before');
+    try {
+      const s = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+      if (s && s.permissions && Array.isArray(s.permissions.deny)) {
+        s.permissions.deny = s.permissions.deny.filter((r) => !denyAdded.includes(r));
+        if (s.permissions.deny.length === 0) delete s.permissions.deny;
+        if (Object.keys(s.permissions).length === 0) delete s.permissions;
+      }
+      if (settingsExistedBefore === 'false' && Object.keys(s).length === 0) {
+        rmFile(settingsPath);
+        ok(`Removed ${settingsPath} (created by installer, now empty)`);
+      } else {
+        fs.writeFileSync(settingsPath, JSON.stringify(s, null, 2) + '\n');
+        ok(`Removed secret-file deny rules from ${settingsPath}`);
+      }
+    } catch {
+      warn(`Could not update ${settingsPath}; left as-is.`);
+    }
+  }
+
   // Remove manifest itself.
   rmFile(MANIFEST);
   ok('Removed manifest');

@@ -128,6 +128,7 @@ node $HOME\projects\project-starter\scripts\install.mjs
 - Installs external skills from skills.sh via `npx skills` (essential and full bundles)
 - Writes `.project-starter-manifest` recording every file/dir/skill it touched
 - Wraps a managed block (`<!-- BEGIN project-starter --> ... <!-- END project-starter -->`) into the target `CLAUDE.md`
+- **Hardens secret access:** merges `permissions.deny` rules into the target `settings.json` so Claude's Read/Bash tools can't open `.env*` files or private keys — keeping `setup-secrets`-stored keys out of the AI context (see [Secrets Setup](#secrets-setup-api-keys--tokens))
 - Self-heals on re-runs: any prior managed block(s) are stripped before the fresh block is written, so duplicate appends won't accumulate
 
 Re-running is safe and idempotent.
@@ -284,6 +285,7 @@ rm -rf /tmp/ps-verify
 Use the `setup-secrets` skill (`skills/setup-secrets/setup-secrets.mjs`) to inject keys into `.env.local` interactively. It's cross-platform Node; `setup-secrets.sh` is a thin shim for bash shells. Why a separate script:
 
 - Secrets never get pasted into an AI chat (avoids leakage to logs / transcripts)
+- **The agent never reads the file either:** the installer adds `permissions.deny` rules to `settings.json` so Claude's Read/Bash tools can't open `.env*` or private keys. A pasted *or* agent-read key both end up in the model's context — both are leaks — so reading is hard-blocked, not just discouraged. The value is consumed by the runtime (`pnpm dev`, CLIs) and referenced in code as `process.env.X`; the agent never needs to see it.
 - The script reads with hidden (no-echo) input and restricts the file to the owner — `chmod 600` on macOS/Linux, `icacls` on Windows
 - Each service is preceded by **where to get the key**, **what scopes/permissions to choose**, and **what's secret vs public**
 - The script is idempotent — re-running updates existing keys in place, never appends duplicates
@@ -517,6 +519,7 @@ If the manifest is missing (e.g. an install from before this mechanism existed),
 | Skills | `./.claude/skills/new-project-bootstrap/`, `./.claude/skills/setup-secrets/` | `~/.agents/skills/new-project-bootstrap/`, `~/.agents/skills/setup-secrets/` |
 | Manifest | `./.claude/.project-starter-manifest` (removed last) | `~/.claude/.project-starter-manifest` |
 | `CLAUDE.md` | managed block stripped; file removed if it didn't exist before install | managed block stripped; file preserved if other content remains |
+| `settings.json` | only the secret-file deny rules we added are removed; your other settings stay; file removed if it didn't exist before install | same, at `~/.claude/settings.json` |
 
 ### What's preserved
 
