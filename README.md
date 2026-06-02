@@ -291,27 +291,22 @@ Use the `setup-secrets` skill (`skills/setup-secrets/setup-secrets.mjs`) to inje
 
 Installed as a skill at `~/.agents/skills/setup-secrets/` (global scope) or `./.claude/skills/setup-secrets/` (project scope).
 
-> **About the path:** the script writes `.env.local` into your **current working directory**, so run it from the project root where the file should live (or point it elsewhere with `ENV_FILE=...`, see [Other env vars](#other-env-vars)). The commands below have no `cd` baked in so you can copy-paste them as-is.
+> **About the path:** the script writes `.env.local` into your **current working directory**, so run it from the project root where the file should live (or point it elsewhere with `ENV_FILE=...`). The commands below have no `cd` baked in so you can copy-paste them as-is.
 
-### Interactive menu
+The interactive menu offers: **Supabase / Vercel / Sentry / Amplitude / Cloudflare / Anthropic / Custom / Validate**. Pick your platform below.
+
+---
+
+### macOS / Linux / WSL / Git Bash
+
+#### Interactive menu
 
 ```bash
-# macOS / Linux / WSL / Git Bash
 bash ~/.agents/skills/setup-secrets/setup-secrets.sh    # global scope install
 bash ./.claude/skills/setup-secrets/setup-secrets.sh    # project scope install
 ```
 
-```powershell
-# Windows / PowerShell — call the Node script directly
-node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs    # global scope install
-node .\.claude\skills\setup-secrets\setup-secrets.mjs        # project scope install
-```
-
-You'll see a menu with: Supabase / Vercel / Sentry / Amplitude / Cloudflare / Anthropic / Custom / Validate.
-
-> On Windows, set `SERVICE` / `ENV_FILE` / `DRY_RUN` the PowerShell way before the call, e.g. `$env:SERVICE="supabase"; node ...\setup-secrets.mjs`.
-
-### One service only (non-interactive entry)
+#### One service only (non-interactive entry)
 
 ```bash
 SERVICE=supabase   bash ~/.agents/skills/setup-secrets/setup-secrets.sh
@@ -324,26 +319,61 @@ SERVICE=custom     bash ~/.agents/skills/setup-secrets/setup-secrets.sh
 SERVICE=validate   bash ~/.agents/skills/setup-secrets/setup-secrets.sh   # verify current .env.local
 ```
 
-### Other env vars
+#### Other env vars
 
 ```bash
 ENV_FILE=./.env.production bash ...   # target a different env file
 DRY_RUN=1 bash ...                    # preview without writing
 ```
 
-### Remote one-liner (no install needed)
+#### Remote one-liner (no install needed)
 
 The script is interactive, so it must run from a real file (not piped to stdin, which prompts need). Download to a temp file, then run with Node:
 
 ```bash
-# macOS / Linux / WSL / Git Bash
 f="$(mktemp)"; curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/main/skills/setup-secrets/setup-secrets.mjs -o "$f"; node "$f"; rm -f "$f"
 ```
 
+---
+
+### Windows (PowerShell)
+
+The script is cross-platform Node — call `setup-secrets.mjs` directly. Set `SERVICE` / `ENV_FILE` / `DRY_RUN` the PowerShell way (`$env:NAME="..."`) on the same line, before the command.
+
+#### Interactive menu
+
 ```powershell
-# Windows / PowerShell
+node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs    # global scope install
+node .\.claude\skills\setup-secrets\setup-secrets.mjs        # project scope install
+```
+
+#### One service only (non-interactive entry)
+
+```powershell
+$env:SERVICE="supabase";   node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs
+$env:SERVICE="vercel";     node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs
+$env:SERVICE="sentry";     node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs
+$env:SERVICE="amplitude";  node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs
+$env:SERVICE="cloudflare"; node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs
+$env:SERVICE="anthropic";  node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs
+$env:SERVICE="custom";     node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs
+$env:SERVICE="validate";   node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs   # verify current .env.local
+```
+
+#### Other env vars
+
+```powershell
+$env:ENV_FILE=".\.env.production"; node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs   # target a different env file
+$env:DRY_RUN="1"; node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs                    # preview without writing
+```
+
+#### Remote one-liner (no install needed)
+
+```powershell
 $f="$env:TEMP\setup-secrets.mjs"; irm https://raw.githubusercontent.com/kimyeonsik/project-starter/main/skills/setup-secrets/setup-secrets.mjs -OutFile $f; node $f; Remove-Item $f
 ```
+
+---
 
 ### What gets written (per service)
 
@@ -362,39 +392,109 @@ $f="$env:TEMP\setup-secrets.mjs"; irm https://raw.githubusercontent.com/kimyeons
 - Each entered value is format-validated (Supabase JWT must start with `eyJ`, Anthropic with `sk-ant-`, etc.). Bad format → up to 3 retries → skipped
 - After 3 invalid retries the key is skipped (not partially written)
 - Displayed values are masked (`abcd••••wxyz`) — full secret never appears on screen
-
-### Verifying after setup
-
-```bash
-SERVICE=validate bash ~/.agents/skills/setup-secrets/setup-secrets.sh
-# project scope: bash ./.claude/skills/setup-secrets/setup-secrets.sh
-```
-
-Prints each var with format-check result (OK / format unexpected).
+- Run the **validate** entry above anytime to re-check `.env.local` (prints each var with OK / format-unexpected)
 
 ## Uninstall
 
-### Quick (interactive — choose scope at prompt)
+Removal reads the install manifest and deletes exactly what was created (see [How it works](#how-it-works-manifest-based-removal) below). Pick your platform.
+
+---
+
+### macOS / Linux / WSL / Git Bash
+
+#### Quick (interactive — choose scope at prompt)
 
 ```bash
 bash ~/projects/project-starter/scripts/uninstall.sh
 ```
 
-### Non-interactive
+#### Non-interactive
 
 ```bash
-# Project scope (run from the project directory)
-SCOPE=project bash ~/projects/project-starter/scripts/uninstall.sh
-
-# Global scope
-SCOPE=global bash ~/projects/project-starter/scripts/uninstall.sh
+SCOPE=project bash ~/projects/project-starter/scripts/uninstall.sh   # run from the project directory
+SCOPE=global  bash ~/projects/project-starter/scripts/uninstall.sh
 ```
 
-### Remote one-liner (no clone needed)
+#### Remote (no pre-existing clone)
+
+The uninstaller is multi-file Node, so it can't run from a single piped script — clone to a temp dir, then run:
 
 ```bash
-SCOPE=global bash <(curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/uninstall.sh)
+d="$(mktemp -d)"; git clone -q https://github.com/kimyeonsik/project-starter "$d"; SCOPE=global bash "$d/scripts/uninstall.sh"; rm -rf "$d"
 ```
+
+#### Complete teardown (everything including backups + cloned source)
+
+```bash
+# Uninstall and purge timestamped backups in one go, for each scope you used
+PURGE_BACKUPS=1 SCOPE=project bash ~/projects/project-starter/scripts/uninstall.sh
+PURGE_BACKUPS=1 SCOPE=global  bash ~/projects/project-starter/scripts/uninstall.sh
+
+# Then remove the cloned source repo
+rm -rf ~/projects/project-starter
+```
+
+#### Verify clean removal
+
+```bash
+# Global scope check — all of these should print nothing
+ls ~/.claude/rules/language.md ~/.claude/rules/skill-activation.md 2>/dev/null
+ls ~/.agents/skills/new-project-bootstrap 2>/dev/null
+grep -c "BEGIN project-starter" ~/.claude/CLAUDE.md 2>/dev/null  # → 0 or "No such file"
+
+# Project scope check — run from the project directory
+ls ./.claude/rules 2>/dev/null
+grep -c "BEGIN project-starter" ./CLAUDE.md 2>/dev/null  # → 0 or "No such file"
+```
+
+---
+
+### Windows (PowerShell)
+
+Call the Node uninstaller directly; set `SCOPE` / `PURGE_BACKUPS` the PowerShell way before the command.
+
+#### Quick (interactive — choose scope at prompt)
+
+```powershell
+node $HOME\projects\project-starter\scripts\uninstall.mjs
+```
+
+#### Non-interactive
+
+```powershell
+$env:SCOPE="project"; node $HOME\projects\project-starter\scripts\uninstall.mjs   # run from the project directory
+$env:SCOPE="global";  node $HOME\projects\project-starter\scripts\uninstall.mjs
+```
+
+#### Remote (no pre-existing clone)
+
+```powershell
+$d=Join-Path $env:TEMP ([System.Guid]::NewGuid()); git clone -q https://github.com/kimyeonsik/project-starter $d; $env:SCOPE="global"; node "$d\scripts\uninstall.mjs"; Remove-Item -Recurse -Force $d
+```
+
+#### Complete teardown (everything including backups + cloned source)
+
+```powershell
+$env:PURGE_BACKUPS="1"; $env:SCOPE="project"; node $HOME\projects\project-starter\scripts\uninstall.mjs
+$env:PURGE_BACKUPS="1"; $env:SCOPE="global";  node $HOME\projects\project-starter\scripts\uninstall.mjs
+Remove-Item -Recurse -Force $HOME\projects\project-starter
+```
+
+#### Verify clean removal
+
+```powershell
+# Global scope — these should error / print nothing
+Get-ChildItem $HOME\.claude\rules\language.md, $HOME\.agents\skills\new-project-bootstrap -ErrorAction SilentlyContinue
+Select-String "BEGIN project-starter" $HOME\.claude\CLAUDE.md -ErrorAction SilentlyContinue
+
+# Project scope — run from the project directory
+Get-ChildItem .\.claude\rules -ErrorAction SilentlyContinue
+Select-String "BEGIN project-starter" .\CLAUDE.md -ErrorAction SilentlyContinue
+```
+
+> `PURGE_BACKUPS=1` deletes `*.backup-*` files only in the install target directories — it never touches anything else.
+
+---
 
 ### How it works: manifest-based removal
 
@@ -423,32 +523,6 @@ If the manifest is missing (e.g. an install from before this mechanism existed),
 - All `*.backup-<timestamp>` files (kept on disk as a safety net — use `PURGE_BACKUPS=1` to delete)
 - Anything inside install dirs that the installer didn't create (custom files, your edits outside the managed block)
 - Shell config, MCP server configs, other Claude Code settings
-
-### Complete teardown (everything including backups + cloned source)
-
-```bash
-# Uninstall and purge timestamped backups in one go, for each scope you used
-PURGE_BACKUPS=1 SCOPE=project bash ~/projects/project-starter/scripts/uninstall.sh
-PURGE_BACKUPS=1 SCOPE=global  bash ~/projects/project-starter/scripts/uninstall.sh
-
-# Then remove the cloned source repo
-rm -rf ~/projects/project-starter
-```
-
-`PURGE_BACKUPS=1` deletes `*.backup-*` files only in the install target directories — it never touches anything else.
-
-### Verify clean removal
-
-```bash
-# Global scope check — all of these should print nothing
-ls ~/.claude/rules/language.md ~/.claude/rules/skill-activation.md 2>/dev/null
-ls ~/.agents/skills/new-project-bootstrap 2>/dev/null
-grep -c "BEGIN project-starter" ~/.claude/CLAUDE.md 2>/dev/null  # → 0 or "No such file"
-
-# Project scope check — run from the project directory
-ls ./.claude/rules 2>/dev/null
-grep -c "BEGIN project-starter" ./CLAUDE.md 2>/dev/null  # → 0 or "No such file"
-```
 
 ## Prerequisites
 

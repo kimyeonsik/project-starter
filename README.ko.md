@@ -291,27 +291,22 @@ rm -rf /tmp/ps-verify
 
 `~/.agents/skills/setup-secrets/`(global 스코프) 또는 `./.claude/skills/setup-secrets/`(project 스코프)에 스킬로 설치됩니다.
 
-> **경로 안내:** 스크립트는 **현재 작업 디렉토리**에 `.env.local`을 쓰므로, 파일이 있어야 할 프로젝트 루트에서 실행하세요(또는 `ENV_FILE=...`로 다른 위치 지정, [기타 환경변수](#기타-환경변수) 참고). 아래 명령에는 `cd`가 없으니 그대로 복사-붙여넣기 하면 됩니다.
+> **경로 안내:** 스크립트는 **현재 작업 디렉토리**에 `.env.local`을 쓰므로, 파일이 있어야 할 프로젝트 루트에서 실행하세요(또는 `ENV_FILE=...`로 다른 위치 지정). 아래 명령에는 `cd`가 없으니 그대로 복사-붙여넣기 하면 됩니다.
 
-### 대화형 메뉴
+대화형 메뉴는 **Supabase / Vercel / Sentry / Amplitude / Cloudflare / Anthropic / Custom / Validate**를 제공합니다. 아래에서 본인 플랫폼을 고르세요.
+
+---
+
+### macOS / Linux / WSL / Git Bash
+
+#### 대화형 메뉴
 
 ```bash
-# macOS / Linux / WSL / Git Bash
 bash ~/.agents/skills/setup-secrets/setup-secrets.sh    # global 스코프 설치
 bash ./.claude/skills/setup-secrets/setup-secrets.sh    # project 스코프 설치
 ```
 
-```powershell
-# Windows / PowerShell — Node 스크립트를 직접 호출
-node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs    # global 스코프 설치
-node .\.claude\skills\setup-secrets\setup-secrets.mjs        # project 스코프 설치
-```
-
-Supabase / Vercel / Sentry / Amplitude / Cloudflare / Anthropic / Custom / Validate 메뉴가 표시됩니다.
-
-> Windows에서는 `SERVICE` / `ENV_FILE` / `DRY_RUN`을 PowerShell 방식으로 호출 앞에 설정하세요. 예: `$env:SERVICE="supabase"; node ...\setup-secrets.mjs`.
-
-### 단일 서비스만 (비대화형 진입)
+#### 단일 서비스만 (비대화형 진입)
 
 ```bash
 SERVICE=supabase   bash ~/.agents/skills/setup-secrets/setup-secrets.sh
@@ -324,26 +319,61 @@ SERVICE=custom     bash ~/.agents/skills/setup-secrets/setup-secrets.sh
 SERVICE=validate   bash ~/.agents/skills/setup-secrets/setup-secrets.sh   # 현재 .env.local 검증
 ```
 
-### 기타 환경변수
+#### 기타 환경변수
 
 ```bash
 ENV_FILE=./.env.production bash ...   # 다른 env 파일 대상
 DRY_RUN=1 bash ...                    # 쓰지 않고 미리보기
 ```
 
-### 원격 원라이너 (설치 불필요)
+#### 원격 원라이너 (설치 불필요)
 
 스크립트는 대화형이라 실제 파일에서 실행해야 합니다(프롬프트 입력이 필요하므로 stdin 파이프 불가). 임시 파일로 받아 Node로 실행:
 
 ```bash
-# macOS / Linux / WSL / Git Bash
 f="$(mktemp)"; curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/main/skills/setup-secrets/setup-secrets.mjs -o "$f"; node "$f"; rm -f "$f"
 ```
 
+---
+
+### Windows (PowerShell)
+
+스크립트는 크로스플랫폼 Node — `setup-secrets.mjs`를 직접 호출합니다. `SERVICE` / `ENV_FILE` / `DRY_RUN`은 PowerShell 방식(`$env:NAME="..."`)으로 같은 줄에서 명령 앞에 설정하세요.
+
+#### 대화형 메뉴
+
 ```powershell
-# Windows / PowerShell
+node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs    # global 스코프 설치
+node .\.claude\skills\setup-secrets\setup-secrets.mjs        # project 스코프 설치
+```
+
+#### 단일 서비스만 (비대화형 진입)
+
+```powershell
+$env:SERVICE="supabase";   node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs
+$env:SERVICE="vercel";     node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs
+$env:SERVICE="sentry";     node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs
+$env:SERVICE="amplitude";  node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs
+$env:SERVICE="cloudflare"; node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs
+$env:SERVICE="anthropic";  node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs
+$env:SERVICE="custom";     node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs
+$env:SERVICE="validate";   node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs   # 현재 .env.local 검증
+```
+
+#### 기타 환경변수
+
+```powershell
+$env:ENV_FILE=".\.env.production"; node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs   # 다른 env 파일 대상
+$env:DRY_RUN="1"; node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs                    # 쓰지 않고 미리보기
+```
+
+#### 원격 원라이너 (설치 불필요)
+
+```powershell
 $f="$env:TEMP\setup-secrets.mjs"; irm https://raw.githubusercontent.com/kimyeonsik/project-starter/main/skills/setup-secrets/setup-secrets.mjs -OutFile $f; node $f; Remove-Item $f
 ```
+
+---
 
 ### 서비스별 작성되는 변수
 
@@ -362,39 +392,109 @@ $f="$env:TEMP\setup-secrets.mjs"; irm https://raw.githubusercontent.com/kimyeons
 - 입력값마다 형식 검증 (Supabase JWT는 `eyJ`, Anthropic은 `sk-ant-` 로 시작 등). 형식 오류 → 최대 3회 재시도 → 건너뜀
 - 3회 잘못 입력하면 해당 키는 건너뜀(부분 저장 안 됨)
 - 표시값은 마스킹(`abcd••••wxyz`) — 전체 시크릿은 화면에 절대 안 나옴
-
-### 설정 후 검증
-
-```bash
-SERVICE=validate bash ~/.agents/skills/setup-secrets/setup-secrets.sh
-# project 스코프: bash ./.claude/skills/setup-secrets/setup-secrets.sh
-```
-
-각 변수의 형식 검사 결과(OK / 형식 이상)를 출력합니다.
+- 위 **validate** 항목을 언제든 실행해 `.env.local`을 재검증 (각 변수의 OK / 형식 이상 출력)
 
 ## 제거
 
-### 빠른 제거 (대화형 — 프롬프트에서 스코프 선택)
+제거는 설치 매니페스트를 읽어 만든 것만 정확히 삭제합니다(아래 [동작 방식](#동작-방식-매니페스트-기반-제거) 참고). 본인 플랫폼을 고르세요.
+
+---
+
+### macOS / Linux / WSL / Git Bash
+
+#### 빠른 제거 (대화형 — 프롬프트에서 스코프 선택)
 
 ```bash
 bash ~/projects/project-starter/scripts/uninstall.sh
 ```
 
-### 비대화형
+#### 비대화형
 
 ```bash
-# project 스코프 (프로젝트 디렉토리에서 실행)
-SCOPE=project bash ~/projects/project-starter/scripts/uninstall.sh
-
-# global 스코프
-SCOPE=global bash ~/projects/project-starter/scripts/uninstall.sh
+SCOPE=project bash ~/projects/project-starter/scripts/uninstall.sh   # 프로젝트 디렉토리에서 실행
+SCOPE=global  bash ~/projects/project-starter/scripts/uninstall.sh
 ```
 
-### 원격 원라이너 (클론 불필요)
+#### 원격 (기존 클론 없이)
+
+제거기는 여러 파일로 된 Node라 단일 파이프 스크립트로 실행할 수 없습니다 — 임시 디렉토리에 클론한 뒤 실행:
 
 ```bash
-SCOPE=global bash <(curl -fsSL https://raw.githubusercontent.com/kimyeonsik/project-starter/main/scripts/uninstall.sh)
+d="$(mktemp -d)"; git clone -q https://github.com/kimyeonsik/project-starter "$d"; SCOPE=global bash "$d/scripts/uninstall.sh"; rm -rf "$d"
 ```
+
+#### 완전 제거 (백업 + 클론 소스 포함 전부)
+
+```bash
+# 사용한 각 스코프에 대해 제거 + 타임스탬프 백업까지 한 번에 정리
+PURGE_BACKUPS=1 SCOPE=project bash ~/projects/project-starter/scripts/uninstall.sh
+PURGE_BACKUPS=1 SCOPE=global  bash ~/projects/project-starter/scripts/uninstall.sh
+
+# 그 다음 클론된 소스 레포 제거
+rm -rf ~/projects/project-starter
+```
+
+#### 깨끗이 제거되었는지 확인
+
+```bash
+# global 스코프 확인 — 모두 아무것도 출력 안 되어야 함
+ls ~/.claude/rules/language.md ~/.claude/rules/skill-activation.md 2>/dev/null
+ls ~/.agents/skills/new-project-bootstrap 2>/dev/null
+grep -c "BEGIN project-starter" ~/.claude/CLAUDE.md 2>/dev/null  # → 0 또는 "No such file"
+
+# project 스코프 확인 — 프로젝트 디렉토리에서 실행
+ls ./.claude/rules 2>/dev/null
+grep -c "BEGIN project-starter" ./CLAUDE.md 2>/dev/null  # → 0 또는 "No such file"
+```
+
+---
+
+### Windows (PowerShell)
+
+Node 제거기를 직접 호출합니다. `SCOPE` / `PURGE_BACKUPS`는 명령 앞에 PowerShell 방식으로 설정하세요.
+
+#### 빠른 제거 (대화형 — 프롬프트에서 스코프 선택)
+
+```powershell
+node $HOME\projects\project-starter\scripts\uninstall.mjs
+```
+
+#### 비대화형
+
+```powershell
+$env:SCOPE="project"; node $HOME\projects\project-starter\scripts\uninstall.mjs   # 프로젝트 디렉토리에서 실행
+$env:SCOPE="global";  node $HOME\projects\project-starter\scripts\uninstall.mjs
+```
+
+#### 원격 (기존 클론 없이)
+
+```powershell
+$d=Join-Path $env:TEMP ([System.Guid]::NewGuid()); git clone -q https://github.com/kimyeonsik/project-starter $d; $env:SCOPE="global"; node "$d\scripts\uninstall.mjs"; Remove-Item -Recurse -Force $d
+```
+
+#### 완전 제거 (백업 + 클론 소스 포함 전부)
+
+```powershell
+$env:PURGE_BACKUPS="1"; $env:SCOPE="project"; node $HOME\projects\project-starter\scripts\uninstall.mjs
+$env:PURGE_BACKUPS="1"; $env:SCOPE="global";  node $HOME\projects\project-starter\scripts\uninstall.mjs
+Remove-Item -Recurse -Force $HOME\projects\project-starter
+```
+
+#### 깨끗이 제거되었는지 확인
+
+```powershell
+# global 스코프 — 모두 에러/빈 출력이어야 함
+Get-ChildItem $HOME\.claude\rules\language.md, $HOME\.agents\skills\new-project-bootstrap -ErrorAction SilentlyContinue
+Select-String "BEGIN project-starter" $HOME\.claude\CLAUDE.md -ErrorAction SilentlyContinue
+
+# project 스코프 — 프로젝트 디렉토리에서 실행
+Get-ChildItem .\.claude\rules -ErrorAction SilentlyContinue
+Select-String "BEGIN project-starter" .\CLAUDE.md -ErrorAction SilentlyContinue
+```
+
+> `PURGE_BACKUPS=1`은 설치 대상 디렉토리 안의 `*.backup-*` 파일만 삭제하며, 그 외엔 절대 건드리지 않습니다.
+
+---
 
 ### 동작 방식: 매니페스트 기반 제거
 
@@ -423,32 +523,6 @@ SCOPE=global bash <(curl -fsSL https://raw.githubusercontent.com/kimyeonsik/proj
 - 모든 `*.backup-<timestamp>` 파일 (안전망으로 디스크에 유지 — `PURGE_BACKUPS=1`로 삭제)
 - 설치기가 만들지 않은 설치 디렉토리 내 모든 것 (커스텀 파일, 관리 블록 밖의 편집)
 - 셸 설정, MCP 서버 설정, 기타 Claude Code 설정
-
-### 완전 제거 (백업 + 클론 소스 포함 전부)
-
-```bash
-# 사용한 각 스코프에 대해 제거 + 타임스탬프 백업까지 한 번에 정리
-PURGE_BACKUPS=1 SCOPE=project bash ~/projects/project-starter/scripts/uninstall.sh
-PURGE_BACKUPS=1 SCOPE=global  bash ~/projects/project-starter/scripts/uninstall.sh
-
-# 그 다음 클론된 소스 레포 제거
-rm -rf ~/projects/project-starter
-```
-
-`PURGE_BACKUPS=1`은 설치 대상 디렉토리 안의 `*.backup-*` 파일만 삭제하며, 그 외엔 절대 건드리지 않습니다.
-
-### 깨끗이 제거되었는지 확인
-
-```bash
-# global 스코프 확인 — 모두 아무것도 출력 안 되어야 함
-ls ~/.claude/rules/language.md ~/.claude/rules/skill-activation.md 2>/dev/null
-ls ~/.agents/skills/new-project-bootstrap 2>/dev/null
-grep -c "BEGIN project-starter" ~/.claude/CLAUDE.md 2>/dev/null  # → 0 또는 "No such file"
-
-# project 스코프 확인 — 프로젝트 디렉토리에서 실행
-ls ./.claude/rules 2>/dev/null
-grep -c "BEGIN project-starter" ./CLAUDE.md 2>/dev/null  # → 0 또는 "No such file"
-```
 
 ## 사전 요구사항
 
