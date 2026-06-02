@@ -37,6 +37,7 @@
 
 **스택별 추가** (프로젝트 CLAUDE.md import 시 자동 누적):
 - Next.js → `nextjs-app-router-patterns` + `vercel-react-best-practices`
+- Tailwind / shadcn/ui (`components/ui/`, 유틸리티 클래스) → `frontend-design` (완료 전 `accessibility` 실행)
 
 ### Stage 4 — Implementation (TDD 사이클)
 
@@ -52,6 +53,9 @@
 - Supabase 작업 → `supabase` + `supabase-postgres-best-practices`
 - Cloudflare Workers → Cloudflare MCP tools
 - Anthropic SDK → `claude-api`
+- Vitest (`*.test.ts`, 신규 로직) → `test-driven-development` (Red → Green → Refactor)
+- Amplitude 계측 → 이벤트 택소노미 먼저 합의 후 `track()`; 시크릿 키는 `setup-secrets` 경유
+- Resend 이메일 → 서버사이드 전송만, `RESEND_API_KEY`는 `setup-secrets` 경유
 
 ### Stage 5 — Quality (검증/디버깅/리팩토링)
 
@@ -65,6 +69,8 @@
 | 의도 | 활성화 |
 |---|---|
 | 체계적 디버깅 | `obra/superpowers@systematic-debugging` |
+| 프로덕션 에러 / 스택트레이스 | Sentry MCP 이슈 조회 먼저 → `systematic-debugging` |
+| 단위/통합 테스트 | `obra/superpowers@test-driven-development` (Vitest) |
 | E2E 자동화 | `anthropics/skills@webapp-testing` (Playwright) |
 | 접근성 점검 | `addyosmani/web-quality-skills@accessibility` |
 | Surgical 리팩토링 | `github/awesome-copilot@refactor` |
@@ -89,6 +95,11 @@
 |---|---|
 | TDD, 신규 기능 구현 시작 | `obra/superpowers@test-driven-development` |
 | 라이브러리/SDK/CLI 문서 질문 | `claude.ai Context7` MCP 우선 |
+| `@sentry/*`, 프로덕션 에러, 배포된 스택트레이스 | Sentry MCP 이슈 조회 먼저 (코드로 추측 금지) |
+| `@amplitude/*`, "이벤트 추적", 퍼널/리텐션 질문 | 이벤트 택소노미 먼저; 실측 지표는 Amplitude MCP (숫자 지어내기 금지) |
+| Vitest, `*.test.ts` (Playwright 제외) | `obra/superpowers@test-driven-development` |
+| Tailwind / shadcn, `components/ui/`, 유틸리티 클래스 | `frontend-design` (+ 완료 전 `accessibility`) |
+| Resend, `resend.emails.send`, `@react-email/*` | 서버사이드 전송, 시크릿은 `setup-secrets` 경유 |
 
 ## 정기 점검 (운영)
 

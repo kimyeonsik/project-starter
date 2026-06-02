@@ -35,6 +35,30 @@ Fetches up-to-date library/framework documentation. Already triggered by `stacks
 
 Setup: https://context7.com/
 
+## Sentry MCP
+
+Reads production issues, stack traces, and performance data directly from Claude.
+
+Setup: https://docs.sentry.io/product/sentry-mcp/
+
+When connected, project CLAUDE.md's `stacks/sentry.md` enables Claude to:
+- Pull the actual error (frequency, affected users, breadcrumbs) before debugging — not guess from code
+- Cross-check Sentry issues against Vercel runtime logs for the full picture
+
+Without it: paste the stack trace / issue manually.
+
+## Amplitude MCP
+
+Queries product analytics (events, funnels, retention) from Claude.
+
+Setup: connect via Claude's MCP directory, then run `authenticate` → `complete_authentication` in a session (chart/query tools load only after auth).
+
+When connected, project CLAUDE.md's `stacks/amplitude.md` enables Claude to:
+- Answer real product-metric questions from data instead of fabricating numbers
+- Suggest an event taxonomy grounded in what's already tracked
+
+Without it: Claude helps define/instrument events but can't read live metrics.
+
 ## Configuring MCP Servers in Claude Code
 
 Edit `~/.claude/settings.json` or use the IDE plugin's MCP settings.

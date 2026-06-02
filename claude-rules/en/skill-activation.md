@@ -37,6 +37,7 @@ Output: working scaffold + `_team/`, `docs/adr/`, `CLAUDE.md`.
 
 **Stack-specific add-ons** (cumulative when imported in project CLAUDE.md):
 - Next.js → `nextjs-app-router-patterns` + `vercel-react-best-practices`
+- Tailwind / shadcn/ui (`components/ui/`, utility classes) → `frontend-design` (run `accessibility` before done)
 
 ### Stage 4 — Implementation (TDD cycle)
 
@@ -52,6 +53,9 @@ Output: working scaffold + `_team/`, `docs/adr/`, `CLAUDE.md`.
 - Supabase work → `supabase` + `supabase-postgres-best-practices`
 - Cloudflare Workers → Cloudflare MCP tools
 - Anthropic SDK → `claude-api`
+- Vitest (`*.test.ts`, new logic) → `test-driven-development` (Red → Green → Refactor)
+- Amplitude instrumentation → agree on event taxonomy first, then `track()`; secret keys via `setup-secrets`
+- Resend email → server-side send only, `RESEND_API_KEY` via `setup-secrets`
 
 ### Stage 5 — Quality (verification, debugging, refactoring)
 
@@ -65,6 +69,8 @@ Output: working scaffold + `_team/`, `docs/adr/`, `CLAUDE.md`.
 | Intent | Activate |
 |---|---|
 | Systematic debugging | `obra/superpowers@systematic-debugging` |
+| Production error / stack trace | Sentry MCP issue lookup first → `systematic-debugging` |
+| Unit / integration testing | `obra/superpowers@test-driven-development` (Vitest) |
 | E2E automation | `anthropics/skills@webapp-testing` (Playwright) |
 | Accessibility audit | `addyosmani/web-quality-skills@accessibility` |
 | Surgical refactor | `github/awesome-copilot@refactor` |
@@ -89,6 +95,11 @@ When the project's CLAUDE.md imports a stack rule, that stack's signals cumulati
 |---|---|
 | TDD, starting a new feature | `obra/superpowers@test-driven-development` |
 | Library/SDK/CLI doc question | `claude.ai Context7` MCP first |
+| `@sentry/*`, prod error, deployed stack trace | Sentry MCP issue lookup first (don't guess from code) |
+| `@amplitude/*`, "track event", funnel/retention question | event taxonomy first; Amplitude MCP for live metrics (never fabricate) |
+| Vitest, `*.test.ts` (non-Playwright) | `obra/superpowers@test-driven-development` |
+| Tailwind / shadcn, `components/ui/`, utility classes | `frontend-design` (+ `accessibility` before done) |
+| Resend, `resend.emails.send`, `@react-email/*` | server-side send, secret via `setup-secrets` |
 
 ## Maintenance / Operations
 

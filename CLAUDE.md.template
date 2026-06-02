@@ -24,4 +24,4 @@ Global makes no stack assumption. Each project CLAUDE.md opts in to the stacks i
 @~/.claude/rules/stacks/supabase.md
 ```
 
-Available: `nextjs`, `supabase`, `vercel`, `cloudflare`, `playwright`, `claude-api`
+Available: `nextjs`, `supabase`, `vercel`, `cloudflare`, `playwright`, `claude-api`, `sentry`, `amplitude`, `vitest`, `tailwind`, `resend`
