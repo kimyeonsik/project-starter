@@ -190,8 +190,29 @@ function upsert(key, val) {
   ok(`Set ${key} = ${mask(val)}`);
 }
 
-// Prompt + validate (regex). Empty input skips. Up to 3 retries on bad format.
-async function promptValidated(label, key, regex) {
+// Single source of truth for env-var format validation, shared by the
+// interactive setup handlers (promptValidated) and `validate` (validateEnv).
+// Keeping one map prevents setup and validate from drifting apart — e.g. setup
+// accepting a key format that validate later flags as malformed.
+const PATTERNS = {
+  NEXT_PUBLIC_SUPABASE_URL: /^https:\/\/[a-z0-9-]+\.supabase\.(co|in)$/,
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: /^(eyJ|sbp_)/,
+  SUPABASE_SERVICE_ROLE_KEY: /^(eyJ|sbs_)/,
+  SUPABASE_ACCESS_TOKEN: /^sbp_[A-Za-z0-9]+$/,
+  VERCEL_TOKEN: /^[A-Za-z0-9]{24,}$/,
+  NEXT_PUBLIC_SENTRY_DSN: /^https:\/\/[^@/]+@[^/]+\.ingest\.[^/]*sentry\.io\/[0-9]+$/,
+  SENTRY_ORG: /^[a-z0-9-]+$/,
+  SENTRY_PROJECT: /^[a-z0-9-]+$/,
+  SENTRY_AUTH_TOKEN: /^(sntrys_|sntryu_)/,
+  NEXT_PUBLIC_AMPLITUDE_API_KEY: /^[a-f0-9]{32}$/,
+  CLOUDFLARE_ACCOUNT_ID: /^[a-f0-9]{32}$/,
+  CLOUDFLARE_API_TOKEN: /^[A-Za-z0-9_-]{40,}$/,
+  ANTHROPIC_API_KEY: /^sk-ant-[A-Za-z0-9_-]+$/,
+};
+
+// Prompt + validate against PATTERNS[key]. Empty input skips. Up to 3 retries.
+async function promptValidated(label, key) {
+  const regex = PATTERNS[key];
   let attempt = 0;
   for (;;) {
     const val = await promptHidden(`  ${label}: `);
@@ -239,10 +260,10 @@ Security:
   • Rotate at the same URLs if exposed`);
   console.log('');
   if (!(await confirm('Paste keys now?'))) return;
-  await promptValidated('NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', /^https:\/\/[a-z0-9-]+\.supabase\.(co|in)$/);
-  await promptValidated('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', /^(eyJ|sbp_)/);
-  await promptValidated('SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_ROLE_KEY', /^(eyJ|sbs_)/);
-  await promptValidated('SUPABASE_ACCESS_TOKEN (sbp_)', 'SUPABASE_ACCESS_TOKEN', /^sbp_[A-Za-z0-9]+$/);
+  await promptValidated('NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL');
+  await promptValidated('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_ANON_KEY');
+  await promptValidated('SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_ROLE_KEY');
+  await promptValidated('SUPABASE_ACCESS_TOKEN (sbp_)', 'SUPABASE_ACCESS_TOKEN');
 }
 
 async function setupVercel() {
@@ -263,7 +284,7 @@ Security:
   • Rotate at the same URL if leaked`);
   console.log('');
   if (!(await confirm('Paste token now?'))) return;
-  await promptValidated('VERCEL_TOKEN', 'VERCEL_TOKEN', /^[A-Za-z0-9]{24,}$/);
+  await promptValidated('VERCEL_TOKEN', 'VERCEL_TOKEN');
 }
 
 async function setupSentry() {
@@ -291,10 +312,10 @@ Security:
   • DSN is intentionally semi-public; Sentry enforces rate limits`);
   console.log('');
   if (!(await confirm('Paste values now?'))) return;
-  await promptValidated('NEXT_PUBLIC_SENTRY_DSN', 'NEXT_PUBLIC_SENTRY_DSN', /^https:\/\/[^@/]+@[^/]+\.ingest\.[^/]*sentry\.io\/[0-9]+$/);
-  await promptValidated('SENTRY_ORG (slug)', 'SENTRY_ORG', /^[a-z0-9-]+$/);
-  await promptValidated('SENTRY_PROJECT (slug)', 'SENTRY_PROJECT', /^[a-z0-9-]+$/);
-  await promptValidated('SENTRY_AUTH_TOKEN', 'SENTRY_AUTH_TOKEN', /^(sntrys_|sntryu_)/);
+  await promptValidated('NEXT_PUBLIC_SENTRY_DSN', 'NEXT_PUBLIC_SENTRY_DSN');
+  await promptValidated('SENTRY_ORG (slug)', 'SENTRY_ORG');
+  await promptValidated('SENTRY_PROJECT (slug)', 'SENTRY_PROJECT');
+  await promptValidated('SENTRY_AUTH_TOKEN', 'SENTRY_AUTH_TOKEN');
 }
 
 async function setupAmplitude() {
@@ -314,7 +335,7 @@ Security:
   • Secret key (for server-side ingest) is rarely needed`);
   console.log('');
   if (!(await confirm('Paste key now?'))) return;
-  await promptValidated('NEXT_PUBLIC_AMPLITUDE_API_KEY', 'NEXT_PUBLIC_AMPLITUDE_API_KEY', /^[a-f0-9]{32}$/);
+  await promptValidated('NEXT_PUBLIC_AMPLITUDE_API_KEY', 'NEXT_PUBLIC_AMPLITUDE_API_KEY');
 }
 
 async function setupCloudflare() {
@@ -349,8 +370,8 @@ Security:
   • Use the minimum scopes needed; rotate at the same URL`);
   console.log('');
   if (!(await confirm('Paste values now?'))) return;
-  await promptValidated('CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_ACCOUNT_ID', /^[a-f0-9]{32}$/);
-  await promptValidated('CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_API_TOKEN', /^[A-Za-z0-9_-]{40,}$/);
+  await promptValidated('CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_ACCOUNT_ID');
+  await promptValidated('CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_API_TOKEN');
 }
 
 async function setupAnthropic() {
@@ -372,7 +393,7 @@ Security:
   • Rotate immediately if leaked`);
   console.log('');
   if (!(await confirm('Paste key now?'))) return;
-  await promptValidated('ANTHROPIC_API_KEY (sk-ant-)', 'ANTHROPIC_API_KEY', /^sk-ant-[A-Za-z0-9_-]+$/);
+  await promptValidated('ANTHROPIC_API_KEY (sk-ant-)', 'ANTHROPIC_API_KEY');
 }
 
 async function setupCustom() {
@@ -404,8 +425,6 @@ function validateEnv() {
     err(`${ENV_FILE} not found`);
     return;
   }
-  const check = (key, val, re) =>
-    re.test(val) ? ok(`${key} OK`) : warn(`${key} format unexpected`);
   let count = 0;
   for (const line of fs.readFileSync(ENV_FILE, 'utf8').split('\n')) {
     if (!line || line.startsWith('#')) continue;
@@ -414,38 +433,13 @@ function validateEnv() {
     const key = line.slice(0, eq);
     const val = line.slice(eq + 1);
     count += 1;
-    switch (key) {
-      case 'NEXT_PUBLIC_SUPABASE_URL':
-        check(key, val, /^https:\/\/[a-z0-9-]+\.supabase\.(co|in)$/);
-        break;
-      case 'NEXT_PUBLIC_SUPABASE_ANON_KEY':
-      case 'SUPABASE_SERVICE_ROLE_KEY':
-        check(key, val, /^eyJ/);
-        break;
-      case 'SUPABASE_ACCESS_TOKEN':
-        check(key, val, /^sbp_/);
-        break;
-      case 'VERCEL_TOKEN':
-        check(key, val, /^[A-Za-z0-9]{24,}$/);
-        break;
-      case 'NEXT_PUBLIC_SENTRY_DSN':
-        check(key, val, /^https:\/\/[^@/]+@[^/]+\.ingest\..*sentry\.io\/[0-9]+$/);
-        break;
-      case 'SENTRY_AUTH_TOKEN':
-        check(key, val, /^(sntrys_|sntryu_)/);
-        break;
-      case 'NEXT_PUBLIC_AMPLITUDE_API_KEY':
-      case 'CLOUDFLARE_ACCOUNT_ID':
-        check(key, val, /^[a-f0-9]{32}$/);
-        break;
-      case 'CLOUDFLARE_API_TOKEN':
-        check(key, val, /^[A-Za-z0-9_-]{40,}$/);
-        break;
-      case 'ANTHROPIC_API_KEY':
-        check(key, val, /^sk-ant-/);
-        break;
-      default:
-        ok(`${key} set (${mask(val)})`);
+    const re = PATTERNS[key];
+    if (!re) {
+      ok(`${key} set (${mask(val)})`); // unknown/custom var — presence only
+    } else if (re.test(val)) {
+      ok(`${key} OK`);
+    } else {
+      warn(`${key} format unexpected`);
     }
   }
   console.log('');

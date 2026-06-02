@@ -1,6 +1,6 @@
 ---
 name: new-project-bootstrap
-description: Bootstrap a new Next.js + TypeScript + pnpm project with Sentry, Amplitude, Supabase Auth, Vitest, and Playwright pre-configured. Use when the user wants to start a new web/mobile project from scratch and needs standardized infrastructure (analytics, crash reporting, testing). Triggers after `superpowers:brainstorming` confirms project scope.
+description: Bootstrap a new Next.js + TypeScript + pnpm web project with Sentry, Amplitude, Supabase Auth, Vitest, Playwright, and GitHub Actions CI pre-configured. Use when the user wants to start a new web project from scratch and needs standardized infrastructure (analytics, crash reporting, testing, CI). Triggers after `superpowers:brainstorming` confirms project scope.
 ---
 
 # New Project Bootstrap
@@ -308,7 +308,7 @@ SENTRY_PROJECT=
 SENTRY_AUTH_TOKEN=
 ```
 
-`sentry.client.config.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts` 자동 생성됨. 확인 후 커밋.
+현행 wizard는 `instrumentation.ts` + `instrumentation-client.ts`를 생성한다(구버전의 `sentry.client/server/edge.config.ts` 분리는 deprecated — 만약 그 형태로 생성되면 wizard 버전을 확인). `next.config.*`에 `withSentryConfig` 래핑도 추가됨. 확인 후 커밋. (`stacks/sentry.md` 참조)
 
 키 주입 (AI에 키 노출 금지):
 ```bash
