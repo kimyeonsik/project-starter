@@ -7,6 +7,27 @@ description: Bootstrap a new Next.js + TypeScript + pnpm project with Sentry, Am
 
 새 프로젝트의 표준 인프라를 결정론적으로 셋업한다. `superpowers:brainstorming` 결과로 앱 컨셉이 명확해진 후 호출된다.
 
+## 플랫폼 규약 (크로스플랫폼 — 필독)
+
+이 스킬은 **macOS / Linux / Windows** 모두에서 동작해야 한다. 명령을 실행하기 전에 OS를 먼저 확인하고(예: `process.platform`, 또는 사용자에게 셸 확인) 그에 맞는 형태로 실행한다.
+
+규칙:
+1. **파일/디렉토리 생성·복사·삭제·탐색은 가능한 한 셸 명령 대신 Claude의 내장 도구**(Write / Read / LS / Glob / Edit)를 쓴다. 이들은 OS 무관하게 동작하고 부모 디렉토리도 자동 생성한다.
+2. 셸이 꼭 필요하면 아래 표의 OS별 형태로 변환한다. 코드블록은 기본적으로 **bash(macOS/Linux/WSL/Git Bash)** 형태로 보여주되, Windows 사용자에겐 PowerShell 형태로 바꿔 안내한다.
+3. `pnpm` / `npx` / `git` / `gh` / `node` 는 모든 OS에서 동일하게 동작하므로 그대로 사용한다.
+4. 환경변수 prefix(`SERVICE=x cmd`)는 bash 전용이다. PowerShell은 `$env:SERVICE="x"; cmd`, cmd.exe는 `set SERVICE=x && cmd`.
+
+| 작업 | bash (mac/linux/WSL) | PowerShell (Windows) | 권장: Claude 도구 |
+|---|---|---|---|
+| 디렉토리 생성 | `mkdir -p a/b` | `New-Item -ItemType Directory -Force a\b` | Write(파일 쓰면 부모 자동 생성) |
+| 빈 파일 생성 | `touch f` | `New-Item -ItemType File -Force f` | Write(빈 내용) |
+| 재귀 복사 | `cp -R src dst` | `Copy-Item -Recurse src dst` | — |
+| 재귀 삭제 | `rm -rf dir` | `Remove-Item -Recurse -Force dir` | — |
+| 경로 존재 확인 | `ls -d "<p>"` | `Test-Path "<p>"` | Read / LS |
+| 파일 탐색 | `find d -name "*.html"` | `Get-ChildItem -Recurse -Filter *.html d` | Glob(`d/**/*.html`) |
+| 디렉토리 내용 | `ls -la` | `Get-ChildItem -Force` | LS |
+| 심볼릭 링크 | `ln -s tgt lnk` | `New-Item -ItemType SymbolicLink -Target tgt -Path lnk` (관리자/개발자모드 필요 → 기본은 복사 권장) | — |
+
 ## When to Use
 
 - 빈 디렉토리 또는 신규 디렉토리에서 사용자가 "프로젝트 시작", "처음 만들" 등 표현
@@ -47,19 +68,24 @@ description: Bootstrap a new Next.js + TypeScript + pnpm project with Sentry, Am
 | Step 8 (구조) | `improve-codebase-architecture`, `frontend-design` | 디렉토리/디자인 |
 | Step 11 (최종 검증) | `verification-before-completion` | 게이트 |
 
-**점검 명령**:
-```bash
-npx skills list -g | grep -E "brainstorm|grill-me|find-skills|writing-plans|test-driven|verification|frontend-design|improve-codebase|refactor"
-```
+**점검 방법**: `npx skills list -g` (모든 OS 동일)를 실행하고, 출력에서 다음 이름들이 보이는지 Claude가 직접 확인한다 — 셸 `grep` 파이프는 Windows에 없으므로 쓰지 않는다:
+
+`brainstorming` · `grill-me` · `find-skills` · `writing-plans` · `test-driven-development` · `verification-before-completion` · `frontend-design` · `improve-codebase-architecture` · `refactor`
+
+(bash에서 빠르게 거르고 싶으면 `npx skills list -g | grep -E "brainstorm|grill-me|find-skills|writing-plans|test-driven|verification|frontend-design|improve-codebase|refactor"` 도 가능하지만 선택사항.)
 
 기대: 9개 이상 매칭.
 
 **누락 시 대응**:
 - 누락 수가 적으면 (1~2개): 사용자에게 알리고 부트스트랩 계속 (해당 단계 수동 수행 안내)
-- 다수 누락이거나 essential 번들 자체가 안 깔린 상태:
+- 다수 누락이거나 essential 번들 자체가 안 깔린 상태 (project-starter 클론 위치에서):
   ```bash
-  # project-starter 클론 위치에서
-  SCOPE=global SKILL_BUNDLE=essential bash scripts/install.sh
+  # macOS / Linux / WSL / Git Bash
+  SCOPE=global SKILL_BUNDLE=essential node scripts/install.mjs
+  ```
+  ```powershell
+  # Windows / PowerShell
+  $env:SCOPE="global"; $env:SKILL_BUNDLE="essential"; node scripts/install.mjs
   ```
   실행 후 본 부트스트랩 재시작 권장.
 
@@ -110,25 +136,19 @@ _inputs/에 정리해서 부트스트랩 컨텍스트로 사용합니다.
 
 #### 처리 절차
 
-각 경로별:
+각 경로별 (파일 작업은 Claude의 Read/LS/Glob/Write 도구 우선 — OS 무관):
 
-1. **존재 확인**: `ls -d "<path>"` 또는 URL HEAD 요청
-2. **크기 체크**: 50MB 미만이면 자동 `cp -R`. 50MB 이상이면 사용자에게 `cp` vs `ln -s` 선택 권유.
-3. **URL 별도 처리**:
+1. **존재 확인**: Claude의 Read/LS 도구로 경로 확인 (또는 URL HEAD 요청). 셸이 필요하면 bash `ls -d "<path>"` / PowerShell `Test-Path "<path>"`.
+2. **크기 체크**: 50MB 미만이면 자동 복사. 50MB 이상이면 복사 vs 심볼릭 링크 선택 권유 (Windows 심링크는 관리자/개발자모드 필요 → 기본은 복사 권장). 복사: bash `cp -R src dst` / PowerShell `Copy-Item -Recurse src dst`.
+3. **URL 별도 처리** (모두 OS 무관):
    - Figma URL → `mcp__figma__get_design_context` 호출, 결과를 `_inputs/figma/<file-name>.json`에 저장
    - 라이브 사이트 URL → `pnpm dlx playwright install chromium` 후 페이지 스크린샷 캡처
    - GitHub URL → `gh repo clone <repo> _inputs/refs/<name> -- --depth 1` (read-only 참고용)
 4. **더미 사이트 추가 자동 분석**:
-   ```bash
-   # 페이지 발견
-   find _inputs/dummy-site -name "*.html" -maxdepth 3
-   # Playwright로 각 페이지 스크린샷
-   #   → _inputs/dummy-site/screenshots/<page>.png
-   # HTML 구조 추출 (heading 계층, 주요 컨테이너)
-   #   → _inputs/dummy-site/structure.md
-   # CSS 변수 / 색상 토큰 추출
-   #   → _inputs/dummy-site/tokens-draft.md
-   ```
+   - 페이지 발견: Claude의 **Glob 도구** `_inputs/dummy-site/**/*.html` 사용 (셸 `find`/`Get-ChildItem` 불필요)
+   - Playwright로 각 페이지 스크린샷 → `_inputs/dummy-site/screenshots/<page>.png`
+   - HTML 구조 추출 (heading 계층, 주요 컨테이너) → `_inputs/dummy-site/structure.md`
+   - CSS 변수 / 색상 토큰 추출 → `_inputs/dummy-site/tokens-draft.md`
 5. **결과 보고** (표 형식):
    ```
    ✓ /path/to/spec.md       → _inputs/prd/spec.md
@@ -163,15 +183,22 @@ _inputs/에 정리해서 부트스트랩 컨텍스트로 사용합니다.
 
 ### Step 1: 환경 확인
 
+버전 확인 (모든 OS 동일):
 ```bash
 node --version  # >= 20
 pnpm --version  # 없으면 corepack enable 또는 npm i -g pnpm
 gh --version    # GitHub 레포 생성 시 필요
-pwd             # 현재 디렉토리 확인
-ls -la          # 빈 디렉토리인지 확인 (.git 외 파일 있으면 사용자 확인)
 ```
 
-빈 디렉토리가 아니면 **중단하고 사용자 확인**.
+현재 디렉토리 / 빈 디렉토리 여부 확인 — Claude의 **LS 도구**로 확인하는 게 가장 안전(OS 무관). 셸이 필요하면:
+```bash
+pwd && ls -la                       # macOS / Linux / WSL / Git Bash
+```
+```powershell
+Get-Location; Get-ChildItem -Force  # Windows / PowerShell
+```
+
+빈 디렉토리가 아니면 (`.git` 외 파일 존재) **중단하고 사용자 확인**.
 
 ### Step 2: Next.js 스캐폴드
 
@@ -285,8 +312,9 @@ SENTRY_AUTH_TOKEN=
 
 키 주입 (AI에 키 노출 금지):
 ```bash
-SERVICE=sentry bash ~/.agents/skills/setup-secrets/setup-secrets.sh
-# (project scope: bash ./.claude/skills/setup-secrets/setup-secrets.sh)
+SERVICE=sentry node ~/.agents/skills/setup-secrets/setup-secrets.mjs
+# project scope:  SERVICE=sentry node ./.claude/skills/setup-secrets/setup-secrets.mjs
+# Windows (PS):   $env:SERVICE="sentry"; node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs
 ```
 
 ### Step 6: Amplitude (Analytics)
@@ -316,8 +344,9 @@ export function track(event: string, props?: Record<string, unknown>) {
 
 키 주입 (AI에 키 노출 금지):
 ```bash
-SERVICE=amplitude bash ~/.agents/skills/setup-secrets/setup-secrets.sh
-# (project scope: bash ./.claude/skills/setup-secrets/setup-secrets.sh)
+SERVICE=amplitude node ~/.agents/skills/setup-secrets/setup-secrets.mjs
+# project scope:  SERVICE=amplitude node ./.claude/skills/setup-secrets/setup-secrets.mjs
+# Windows (PS):   $env:SERVICE="amplitude"; node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs
 ```
 
 ### Step 7: Supabase Auth + DB
@@ -336,17 +365,25 @@ pnpm add @supabase/supabase-js @supabase/ssr
 
 키 주입 (AI에 키 노출 금지 — 직접 페이스트):
 ```bash
-SERVICE=supabase bash ~/.agents/skills/setup-secrets/setup-secrets.sh
-# (project scope: bash ./.claude/skills/setup-secrets/setup-secrets.sh)
+SERVICE=supabase node ~/.agents/skills/setup-secrets/setup-secrets.mjs
+# project scope:  SERVICE=supabase node ./.claude/skills/setup-secrets/setup-secrets.mjs
+# Windows (PS):   $env:SERVICE="supabase"; node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs
 ```
 
 `src/lib/supabase/client.ts`, `src/lib/supabase/server.ts`, `src/middleware.ts` 표준 SSR 패턴 작성. (`supabase` 스킬의 SSR 가이드 참조)
 
 ### Step 8: 디렉토리 구조
 
+디렉토리/파일 생성은 Claude의 **Write 도구**로 하면 OS 무관하고 부모 디렉토리도 자동 생성된다 (아래 `CONTEXT.md` / ADR 내용을 바로 Write). 셸이 필요하면:
 ```bash
+# macOS / Linux / WSL / Git Bash
 mkdir -p _team/specs _team/designs _team/reviews docs/adr
 touch CONTEXT.md docs/adr/0001-initial-stack.md
+```
+```powershell
+# Windows / PowerShell
+"_team/specs","_team/designs","_team/reviews","docs/adr" | ForEach-Object { New-Item -ItemType Directory -Force $_ | Out-Null }
+"CONTEXT.md","docs/adr/0001-initial-stack.md" | ForEach-Object { New-Item -ItemType File -Force $_ | Out-Null }
 ```
 
 `CONTEXT.md` 템플릿:
@@ -465,5 +502,10 @@ pnpm exec playwright test
 
 전체 롤백 필요 시:
 ```bash
+# macOS / Linux / WSL / Git Bash
 cd .. && rm -rf <project-name> && mkdir <project-name>
+```
+```powershell
+# Windows / PowerShell
+cd ..; Remove-Item -Recurse -Force <project-name>; New-Item -ItemType Directory <project-name>
 ```

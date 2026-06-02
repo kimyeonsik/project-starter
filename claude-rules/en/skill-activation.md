@@ -132,9 +132,11 @@ Run before bootstrap or when the user requests it:
 npx skills list -g
 ```
 
-Quick check for the essential bundle:
+Quick check for the essential bundle — run `npx skills list -g` (all OS) and confirm these names appear in the output: `brainstorming`, `writing-plans`, `test-driven-development`, `systematic-debugging`, `verification-before-completion`, `requesting-code-review`, `grill-me`, `find-skills`, `frontend-design`, `improve-codebase-architecture`, `refactor`, `request-refactor-plan`.
+
 ```bash
+# Optional bash/WSL/Git Bash shortcut (Windows has no grep — read the list instead):
 npx skills list -g | grep -E "brainstorm|writing-plans|test-driven|systematic-debug|verification|requesting-code-review|grill-me|find-skills|frontend-design|improve-codebase|refactor"
 ```
 
-12 matches = essential bundle is complete (`refactor` matches both `refactor` and `request-refactor-plan`). Missing entries → re-run `project-starter/scripts/install.sh` with `SKILL_BUNDLE=essential` (or `full`).
+12 matches = essential bundle is complete (`refactor` matches both `refactor` and `request-refactor-plan`). Missing entries → re-run the installer with `SKILL_BUNDLE=essential` (or `full`): `node project-starter/scripts/install.mjs` (PowerShell: `$env:SKILL_BUNDLE="essential"; node project-starter/scripts/install.mjs`).
