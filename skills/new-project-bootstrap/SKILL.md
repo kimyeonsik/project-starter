@@ -432,9 +432,15 @@ Accepted
 @~/.claude/rules/stacks/supabase.md
 @~/.claude/rules/stacks/vercel.md
 @~/.claude/rules/stacks/playwright.md
+@~/.claude/rules/stacks/vitest.md
+@~/.claude/rules/stacks/sentry.md
+@~/.claude/rules/stacks/amplitude.md
+@~/.claude/rules/stacks/tailwind.md
+@~/.claude/rules/stacks/github-actions.md
 # Optional — uncomment as needed
 # @~/.claude/rules/stacks/cloudflare.md
 # @~/.claude/rules/stacks/claude-api.md
+# @~/.claude/rules/stacks/resend.md
 
 ## Project-Specific
 
@@ -454,6 +460,43 @@ git commit -m "chore: initial bootstrap (Next.js + Supabase + Sentry + Amplitude
 # 사용자 동의 시:
 gh repo create <name> --private --source=. --push
 ```
+
+### Step 10.5: GitHub Actions CI
+
+PR마다 lint + unit test + build를 강제하는 게이트. `.github/workflows/ci.yml`을 Claude의 **Write 도구**로 생성(OS 무관):
+
+```yaml
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm test:run
+      - run: pnpm build
+```
+
+안내:
+- E2E(Playwright)는 느리므로 기본 게이트에서 제외 — 필요 시 별도 job 또는 label-gated로 추가.
+- 레포 푸시 후 GitHub에서 **branch protection으로 이 CI 체크를 머지 필수로 설정**해야 `git-workflow.md`의 "CI green 필수"가 실효화됨 (`stacks/github-actions.md` 참조).
+- 시크릿이 필요한 단계는 GitHub Actions encrypted secrets(`${{ secrets.NAME }}`)로 — `.env.local`은 CI에 올라가지 않음.
 
 ### Step 11: 최종 검증
 
@@ -491,6 +534,7 @@ pnpm exec playwright test
 - [ ] `.env.local` 존재 (값은 placeholder OK)
 - [ ] `CLAUDE.md` 프로젝트별 생성
 - [ ] `_team/`, `docs/adr/` 디렉토리 존재
+- [ ] `.github/workflows/ci.yml` 생성
 - [ ] git 초기 커밋 완료
 
 ## 실패 시 복구

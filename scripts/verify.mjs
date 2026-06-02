@@ -135,6 +135,10 @@ section('Project scope: install / re-install / uninstall');
 
     const manifest = path.join(T, '.claude', '.project-starter-manifest');
     assert('rules/language.md created', fs.existsSync(path.join(T, '.claude', 'rules', 'language.md')));
+    assert('core rules created (git-workflow, adr, security)', ['git-workflow.md', 'adr.md', 'security.md'].every((f) =>
+      fs.existsSync(path.join(T, '.claude', 'rules', f))));
+    assert('managed block imports core rules', ['git-workflow.md', 'adr.md', 'security.md'].every((f) =>
+      read(claudeMd).includes(`@.claude/rules/${f}`)));
     assert('rules/stacks populated', fs.existsSync(path.join(T, '.claude', 'rules', 'stacks')) &&
       fs.readdirSync(path.join(T, '.claude', 'rules', 'stacks')).some((f) => f.endsWith('.md')));
     assert('skills copied (setup-secrets)', fs.existsSync(path.join(T, '.claude', 'skills', 'setup-secrets', 'setup-secrets.mjs')));
@@ -167,7 +171,8 @@ section('Project scope: install / re-install / uninstall');
     const r3 = runNode({ SCOPE: 'project', PROJECT_ROOT: T }, 'scripts/uninstall.mjs', { stdin: 'y\n' });
     assert('uninstall exits 0', r3.code === 0, r3.output.split('\n').slice(-3).join(' | '));
     assert('manifest removed', !fs.existsSync(manifest));
-    assert('rules removed', !fs.existsSync(path.join(T, '.claude', 'rules', 'language.md')));
+    assert('rules removed', !fs.existsSync(path.join(T, '.claude', 'rules', 'language.md')) &&
+      !fs.existsSync(path.join(T, '.claude', 'rules', 'git-workflow.md')));
     assert('settings.json removed (installer-created)', !fs.existsSync(settings));
     assert('CLAUDE.md kept (pre-existed)', fs.existsSync(claudeMd));
     assert('managed block stripped on uninstall', countMatches(claudeMd, '<!-- BEGIN project-starter -->') === 0);

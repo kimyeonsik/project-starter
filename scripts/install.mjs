@@ -39,6 +39,17 @@ const REPO_DIR = path.resolve(dirOf(import.meta.url), '..');
 const TS = timestamp();
 const env = process.env;
 
+// Language-specific core rules (always-on; copied from claude-rules/<lang>/ and
+// imported by the managed CLAUDE.md block). Stack rules under stacks/ are opt-in.
+const CORE_RULES = [
+  'language.md',
+  'agent-teams.md',
+  'skill-activation.md',
+  'git-workflow.md',
+  'adr.md',
+  'security.md',
+];
+
 function fail(msg) {
   err(msg);
   process.exit(1);
@@ -271,7 +282,7 @@ if (externalSkills.length) {
 info('Installing rules...');
 fs.mkdirSync(path.join(RULES_DIR, 'stacks'), { recursive: true });
 
-for (const f of ['language.md', 'agent-teams.md', 'skill-activation.md']) {
+for (const f of CORE_RULES) {
   const src = path.join(REPO_DIR, 'claude-rules', lang, f);
   const dest = path.join(RULES_DIR, f);
   backupIfExists(dest, TS);
@@ -424,7 +435,7 @@ const manifestLines = [
   `rules_dir=${RULES_DIR}`,
   `skills_dir=${SKILLS_DIR}`,
 ];
-for (const f of ['language.md', 'agent-teams.md', 'skill-activation.md']) {
+for (const f of CORE_RULES) {
   manifestLines.push(`file:${path.join(RULES_DIR, f)}`);
 }
 for (const fname of stackFiles) {
