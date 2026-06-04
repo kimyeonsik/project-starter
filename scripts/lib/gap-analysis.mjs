@@ -5,12 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 // 표준 거버넌스 산출물 체크리스트.
-const GOVERNANCE = [
-  { key: '_team/', kind: 'dir' },
-  { key: 'docs/adr/', kind: 'dir' },
-  { key: 'CLAUDE.md', kind: 'file' },
-  { key: 'CONTEXT.md', kind: 'file' },
-];
+const GOVERNANCE = ['_team/', 'docs/adr/', 'CLAUDE.md', 'CONTEXT.md'];
 
 function existsRel(repoDir, rel) {
   try {
@@ -22,7 +17,7 @@ function existsRel(repoDir, rel) {
 }
 
 export function analyzeGaps(repoDir, detected) {
-  const missing = GOVERNANCE.filter((g) => !existsRel(repoDir, g.key)).map((g) => g.key);
+  const missing = GOVERNANCE.filter((rel) => !existsRel(repoDir, rel));
   const unsupportedStacks = detected
     .filter((d) => d.ruleStatus === 'generic' || d.ruleStatus === 'unclassified')
     .map((d) => d.stack);
