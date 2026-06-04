@@ -1,7 +1,15 @@
-import { test } from 'node:test';
+import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
-import { classify, makeSignals } from './stack-detect.mjs';
+import { classify, makeSignals, gatherSignals, detectStacks } from './stack-detect.mjs';
+
+// ---- 임시 디렉토리 추적 및 정리 ----
+const created = [];
+after(() => {
+  for (const d of created) fs.rmSync(d, { recursive: true, force: true });
+});
 
 // availableNamed: 툴킷이 보유한 stacks/<name>.md 파일명(확장자 제외) 집합
 const NAMED = new Set([
@@ -71,13 +79,10 @@ test('classify: stripe dep → payments, generic', () => {
   assert.equal(got.find((d) => d.stack === 'stripe')?.ruleStatus, 'generic');
 });
 
-import fs from 'node:fs';
-import os from 'node:os';
-import { gatherSignals, detectStacks } from './stack-detect.mjs';
-
 function mkRepo(files) {
   // files: { 'package.json': {...obj}, 'wrangler.toml': 'text', ... }
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ps-detect-'));
+  created.push(dir);
   for (const [rel, content] of Object.entries(files)) {
     const full = path.join(dir, rel);
     fs.mkdirSync(path.dirname(full), { recursive: true });

@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 export function makeSignals({ deps = [], files = [], wranglerHasD1 = false } = {}) {
   const depSet = new Set(deps);
   const fileList = files;
+  // PREFIX matching: hasFile('vercel.json') matches 'vercel.json' AND 'vercel.json.bak', etc.
   const hasFile = (prefix) => fileList.some((f) => f === prefix || f.startsWith(prefix));
   const hasWrangler = fileList.some((f) => f.startsWith('wrangler.'));
   return {
@@ -59,7 +60,7 @@ const RULES = [
   { stack: 'paddle',    capability: 'payments',       when: (s) => s.hasDepPrefix('@paddle/') },
 ];
 
-// capability별 generic 규칙 존재 여부 (claude-rules/capabilities/*.md 와 일치해야 함)
+// capability별 generic 규칙 존재 여부. claude-rules/capabilities/*.md 목록과 동기화 유지 필요.
 const CAPABILITIES_WITH_GENERIC = new Set([
   'framework', 'test-runner', 'database', 'error-tracking', 'analytics', 'styling',
   'auth', 'payments', 'hosting', 'email', 'ai',
@@ -79,11 +80,6 @@ export function classify(signals, availableNamed) {
 }
 
 // ---- 파일시스템 감지 ----
-
-const CONFIG_PREFIXES = [
-  'next.config', 'drizzle.config', 'vercel.json', 'playwright.config',
-  'vitest.config', 'svelte.config', 'astro.config', 'tailwind.config',
-];
 
 function readPackageJson(repoDir) {
   try {
