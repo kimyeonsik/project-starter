@@ -19,12 +19,7 @@
 | 파일 | 책임 | Phase |
 |---|---|---|
 | `package.json` (생성) | `node --test` 스크립트, name/private/type | P1 |
-| `claude-rules/capabilities/framework.md` (생성) | framework capability generic 규칙 | P1 |
-| `claude-rules/capabilities/test-runner.md` (생성) | test-runner generic 규칙 | P1 |
-| `claude-rules/capabilities/database.md` (생성) | database/ORM generic 규칙 | P1 |
-| `claude-rules/capabilities/error-tracking.md` (생성) | error-tracking generic 규칙 | P1 |
-| `claude-rules/capabilities/analytics.md` (생성) | analytics generic 규칙 | P1 |
-| `claude-rules/capabilities/styling.md` (생성) | styling generic 규칙 | P1 |
+| `claude-rules/capabilities/*.md` (생성, 11개) | capability generic 규칙: framework·test-runner·database·error-tracking·analytics·styling·auth·payments·hosting·email·ai | P1 |
 | `claude-rules/stacks/drizzle.md` (생성) | Drizzle named 규칙 | P1 |
 | `claude-rules/stacks/d1.md` (생성) | Cloudflare D1 named 규칙 | P1 |
 | `scripts/lib/stack-detect.mjs` (생성) | 감지: `classify`, `gatherSignals`, `detectStacks` | P1 |
@@ -32,9 +27,10 @@
 | `scripts/lib/gap-analysis.mjs` (생성) | 거버넌스 갭 진단 | P2 |
 | `scripts/lib/gap-analysis.test.mjs` (생성) | 갭 진단 테스트 | P2 |
 | `scripts/lib/vendor.mjs` (생성) | 규칙 vendoring + managed block 합성 (util.mjs 재사용) | P2 |
-| `scripts/adopt.mjs` (생성) | 입양 오케스트레이터 (감지→vendor→리포트) | P2 |
-| `scripts/lib/adopt.test.mjs` (생성) | 입양 통합 테스트 (코드 0-diff, idempotent) | P2 |
+| `scripts/adopt.mjs` (생성) | 입양 오케스트레이터 (apply/dry-run/verify 모드) | P2 |
+| `scripts/lib/adopt.test.mjs` (생성) | 입양 통합 테스트 (코드 0-diff, idempotent, 모드) | P2 |
 | `skills/adopt-existing-project/SKILL.md` (생성) | 입양 스킬 문서 | P2 |
+| `skills/inspect-project/SKILL.md` (생성) | read-only 점검/검증 스킬 (dry-run/verify) | P2 |
 | `README.md` (수정) | adopt 사용법 한 단락 추가 | P2 |
 
 핵심 데이터 타입 (모든 태스크 공통):
@@ -103,7 +99,7 @@ git commit -m "chore(test): add node:test harness (zero-dep) via package.json"
 
 ---
 
-## Task 2: capability generic 규칙 (6개)
+## Task 2: capability generic 규칙 (11개)
 
 **Files:**
 - Create: `claude-rules/capabilities/framework.md`
@@ -112,8 +108,13 @@ git commit -m "chore(test): add node:test harness (zero-dep) via package.json"
 - Create: `claude-rules/capabilities/error-tracking.md`
 - Create: `claude-rules/capabilities/analytics.md`
 - Create: `claude-rules/capabilities/styling.md`
+- Create: `claude-rules/capabilities/auth.md`
+- Create: `claude-rules/capabilities/payments.md`
+- Create: `claude-rules/capabilities/hosting.md`
+- Create: `claude-rules/capabilities/email.md`
+- Create: `claude-rules/capabilities/ai.md`
 
-이름이 매칭되는 named 규칙이 없을 때 적용되는 스택-독립적 generic 규칙. 기존 `stacks/*.md` 포맷(제목 + 시그널 표)을 따른다.
+이름이 매칭되는 named 규칙이 없을 때 적용되는 스택-독립적 generic 규칙. 기존 `stacks/*.md` 포맷(제목 + 시그널 표)을 따른다. auth/payments는 보안 크리티컬, hosting/email/ai는 감지 테이블의 모든 capability가 generic 바닥을 갖도록 메우는 것.
 
 - [ ] **Step 1: `framework.md` 작성**
 
@@ -237,11 +238,117 @@ named 규칙이 없는 스타일링 방식에 적용되는 generic 규칙.
 | UI/디자인/랜딩/대시보드/스타일 | `frontend-design` (+ 완료 전 `accessibility`) |
 ```
 
-- [ ] **Step 7: 커밋**
+- [ ] **Step 7: `auth.md` 작성**
+
+```markdown
+# Capability: Auth (스택-독립)
+
+named 규칙이 없는 인증/인가 라이브러리에 적용되는 generic 규칙.
+
+## 핵심 규율 (보안 크리티컬)
+
+- **자체 crypto/세션을 구현하지 않는다.** 검증된 라이브러리/서비스에 위임한다.
+- 세션/토큰은 **httpOnly·Secure 쿠키**, 만료·갱신은 서버에서 검증.
+- 인가(authorization)는 **항상 서버에서** 확인한다 — 클라이언트 판단 신뢰 금지.
+- 권한 경계(소유자/역할/RLS)를 명시하고 기본은 deny.
+- 시크릿(클라이언트 시크릿, JWT 서명키)은 `setup-secrets` 경유.
+
+## Signals → Auto-Activate
+
+| Signal | 규율 |
+|---|---|
+| 로그인/세션/토큰/권한 변경 | 서버 검증 경로 먼저 확인, 보안 영향 시 `security-review` |
+```
+
+- [ ] **Step 8: `payments.md` 작성**
+
+```markdown
+# Capability: Payments (스택-독립)
+
+named 규칙이 없는 결제 연동에 적용되는 generic 규칙.
+
+## 핵심 규율 (보안 크리티컬)
+
+- **금액·가격은 서버에서 결정**한다 — 클라이언트가 보낸 금액을 신뢰하지 않는다.
+- **웹훅 서명 검증 필수.** 검증 없는 상태 변경 금지.
+- **멱등성 키**로 중복 결제/중복 처리 방지.
+- 카드정보 직접 저장 금지(PCI) — 토큰화/PG 위임.
+- 결제 상태의 SSOT는 **웹훅/서버 기록**이지 클라이언트 리다이렉트가 아니다.
+- 키/시크릿은 `setup-secrets` 경유.
+
+## Signals → Auto-Activate
+
+| Signal | 규율 |
+|---|---|
+| 결제/구독/체크아웃/웹훅 변경 | 서명검증·멱등성 확인, 보안 영향 시 `security-review` |
+```
+
+- [ ] **Step 9: `hosting.md` 작성**
+
+```markdown
+# Capability: Hosting / Deploy (스택-독립)
+
+named 규칙이 없는 호스팅/배포 플랫폼에 적용되는 generic 규칙.
+
+## 핵심 규율
+
+- 시크릿/환경변수는 **플랫폼 시크릿 매니저**에 — repo 커밋 금지.
+- preview/staging/prod 환경을 분리하고 환경별 변수 매트릭스를 문서화.
+- 빌드/배포 설정은 코드로 관리(IaC), 콘솔 수동 변경 최소화.
+
+## Signals → Auto-Activate
+
+| Signal | 규율 |
+|---|---|
+| 배포/환경변수/빌드 설정 변경 | 환경 분리·시크릿 위치 확인 |
+```
+
+- [ ] **Step 10: `email.md` 작성**
+
+```markdown
+# Capability: Email (스택-독립)
+
+named 규칙이 없는 이메일 전송 도구에 적용되는 generic 규칙.
+
+## 핵심 규율
+
+- **서버사이드 전송만.** API 키를 클라이언트에 노출하지 않는다 (`setup-secrets` 경유).
+- 발신 도메인 인증(SPF/DKIM/DMARC) 확인.
+- 바운스/스팸/수신거부 처리 경로 확보.
+
+## Signals → Auto-Activate
+
+| Signal | 규율 |
+|---|---|
+| 이메일 전송 코드 추가 | 서버사이드 전송, 시크릿은 `setup-secrets` |
+```
+
+- [ ] **Step 11: `ai.md` 작성**
+
+```markdown
+# Capability: AI / LLM (스택-독립)
+
+named 규칙이 없는 LLM/AI SDK에 적용되는 generic 규칙. (Anthropic SDK는 `stacks/claude-api.md` named 규칙 우선)
+
+## 핵심 규율
+
+- API 키는 **서버사이드만**, 클라이언트 노출 금지 (`setup-secrets` 경유).
+- **비용 인지**: 토큰/요청량 모니터링, 가능한 캐싱(프롬프트 캐시) 적용.
+- 스트리밍·타임아웃·레이트리밋·재시도 처리.
+- 출력 신뢰 경계: 사용자/모델 출력은 검증 후 사용.
+
+## Signals → Auto-Activate
+
+| Signal | 규율 |
+|---|---|
+| LLM 호출 코드, 프롬프트 작성 | 키 서버사이드·비용/캐싱 확인; Anthropic이면 `claude-api` |
+```
+
+- [ ] **Step 12: 커밋**
 
 ```bash
 git add claude-rules/capabilities/
-git commit -m "feat(rules): add capability generic rules (framework/test/db/error/analytics/styling)"
+git commit -m "feat(rules): add 11 capability generic rules (incl. auth/payments/hosting/email/ai)"
 ```
 
 ---
@@ -373,6 +480,22 @@ test('classify: scoped-prefix match (@sentry/nextjs) → sentry', () => {
   const got = classify(sig, NAMED);
   assert.equal(got.find((d) => d.stack === 'sentry')?.capability, 'error-tracking');
 });
+
+test('classify: clerk dep → auth, generic (no named auth rule)', () => {
+  const sig = makeSignals({ deps: ['@clerk/nextjs'], files: [] });
+  const got = classify(sig, NAMED);
+  assert.deepEqual(
+    got.find((d) => d.stack === 'clerk'),
+    { stack: 'clerk', capability: 'auth', ruleStatus: 'generic' }
+  );
+});
+
+test('classify: stripe dep → payments, generic', () => {
+  const sig = makeSignals({ deps: ['stripe'], files: [] });
+  const got = classify(sig, NAMED);
+  assert.equal(got.find((d) => d.stack === 'stripe')?.capability, 'payments');
+  assert.equal(got.find((d) => d.stack === 'stripe')?.ruleStatus, 'generic');
+});
 ```
 
 - [ ] **Step 2: 테스트 실행해서 실패 확인**
@@ -435,11 +558,19 @@ const RULES = [
   { stack: 'vercel',    capability: 'hosting',        when: (s) => s.hasFile('vercel.json') || s.hasDepPrefix('@vercel/') },
   { stack: 'resend',    capability: 'email',          when: (s) => s.hasDep('resend') },
   { stack: 'claude-api',capability: 'ai',             when: (s) => s.hasDep('@anthropic-ai/sdk') },
+  { stack: 'next-auth', capability: 'auth',           when: (s) => s.hasDep('next-auth') || s.hasDepPrefix('@auth/') },
+  { stack: 'clerk',     capability: 'auth',           when: (s) => s.hasDepPrefix('@clerk/') },
+  { stack: 'lucia',     capability: 'auth',           when: (s) => s.hasDep('lucia') },
+  { stack: 'auth0',     capability: 'auth',           when: (s) => s.hasDepPrefix('@auth0/') },
+  { stack: 'stripe',    capability: 'payments',       when: (s) => s.hasDep('stripe') || s.hasDepPrefix('@stripe/') },
+  { stack: 'toss',      capability: 'payments',       when: (s) => s.hasDepPrefix('@tosspayments/') },
+  { stack: 'paddle',    capability: 'payments',       when: (s) => s.hasDepPrefix('@paddle/') },
 ];
 
 // capability별 generic 규칙 존재 여부 (claude-rules/capabilities/*.md 와 일치해야 함)
 const CAPABILITIES_WITH_GENERIC = new Set([
   'framework', 'test-runner', 'database', 'error-tracking', 'analytics', 'styling',
+  'auth', 'payments', 'hosting', 'email', 'ai',
 ]);
 
 export function classify(signals, availableNamed) {
@@ -816,11 +947,23 @@ import {
   exists, backupIfExists, stripManagedBlock, hasManagedBlock, wrapManagedBlock, timestamp,
 } from './util.mjs';
 
-// 감지된 capability 집합 → 설치할 capability 규칙 파일명
+// generic 규칙이 존재하는 capability (capabilities/*.md 와 일치해야 함)
+const GENERIC_CAPS = new Set([
+  'framework', 'test-runner', 'database', 'error-tracking', 'analytics', 'styling',
+  'auth', 'payments', 'hosting', 'email', 'ai',
+]);
+
+// generic capability 규칙은 "해당 capability에 named 없는(=generic/unclassified) 스택이
+// 하나라도 있을 때만" 설치한다 (Tier1 fallback floor). named로 완전히 덮인 capability는 생략.
+// 예: database에 drizzle(named)+prisma(generic) → database.md 설치(prisma 바닥); hosting에 cloudflare(named)뿐 → 생략.
 function capabilityFiles(detected) {
-  return [...new Set(detected.map((d) => d.capability))]
-    .filter((c) => ['framework', 'test-runner', 'database', 'error-tracking', 'analytics', 'styling'].includes(c))
-    .map((c) => `${c}.md`);
+  const caps = new Set();
+  for (const d of detected) {
+    if ((d.ruleStatus === 'generic' || d.ruleStatus === 'unclassified') && GENERIC_CAPS.has(d.capability)) {
+      caps.add(d.capability);
+    }
+  }
+  return [...caps].map((c) => `${c}.md`);
 }
 
 // 감지된 named 스택 → 설치할 stacks 규칙 파일명
@@ -839,7 +982,7 @@ export function buildManagedBody(detected) {
   lines.push('');
   const caps = capabilityFiles(detected);
   if (caps.length) {
-    lines.push('## Capabilities (detected)');
+    lines.push('## Capabilities (generic fallback)');
     lines.push('');
     for (const f of caps) lines.push(`@.claude/rules/capabilities/${f}`);
     lines.push('');
@@ -886,6 +1029,15 @@ export function vendorRules(repoDir, sourceRoot, detected, lang = 'en') {
   return { rulesDir };
 }
 
+// 이 detected에 대해 vendorRules가 설치할 규칙 파일들의 상대경로(.claude/ 기준).
+// verify 모드가 "설치돼 있어야 할 파일"을 동일 로직으로 재사용하기 위해 export.
+export function plannedRuleFiles(detected) {
+  const files = ['rules/language.md', 'rules/agent-teams.md', 'rules/skill-activation.md'];
+  for (const f of capabilityFiles(detected)) files.push(`rules/capabilities/${f}`);
+  for (const f of namedStackFiles(detected)) files.push(`rules/stacks/${f}`);
+  return files;
+}
+
 // CLAUDE.md 에 managed block 합성/갱신 (idempotent). 기존 사용자 내용 보존.
 export function mergeClaudeMd(repoDir, detected) {
   const TS = timestamp();
@@ -913,13 +1065,13 @@ git commit -m "feat(adopt): selective rule vendoring + managed-block synthesis (
 
 ---
 
-## Task 8: `adopt.mjs` 오케스트레이터 + 통합 테스트
+## Task 8: `adopt.mjs` 오케스트레이터 (apply/dry-run/verify) + 통합 테스트
 
 **Files:**
 - Create: `scripts/adopt.mjs`
 - Test: `scripts/lib/adopt.test.mjs`
 
-감지 → selective vendor → CLAUDE.md 합성 → 갭 리포트(`.claude/adopt-report.md`). **소스 코드 무변경.**
+감지 → selective vendor → CLAUDE.md 합성 → 갭 리포트(`.claude/adopt-report.md`). **소스 코드 무변경.** 세 모드: `apply`(기본), `dry-run`(read-only 점검), `verify`(설치 상태 검증).
 
 - [ ] **Step 1: 실패하는 통합 테스트 작성**
 
@@ -1008,6 +1160,25 @@ test('runAdopt: preserves existing CLAUDE.md user content', () => {
   assert.match(md, /Custom user notes\./);
   assert.match(md, /BEGIN project-starter/);
 });
+
+test('runAdopt dry-run: read-only, writes nothing', () => {
+  const dir = mkRepo({ 'package.json': { dependencies: { next: '15' } } });
+  const res = runAdopt(dir, { sourceRoot: SOURCE_ROOT, mode: 'dry-run' });
+  assert.equal(res.mode, 'dry-run');
+  assert.ok(res.report.length > 0);
+  assert.ok(!fs.existsSync(path.join(dir, '.claude')));
+  assert.ok(!fs.existsSync(path.join(dir, 'CLAUDE.md')));
+});
+
+test('runAdopt verify: false before apply, true after', () => {
+  const dir = mkRepo({ 'package.json': { dependencies: { next: '15', '@clerk/nextjs': '5' } } });
+  const before = runAdopt(dir, { sourceRoot: SOURCE_ROOT, mode: 'verify' });
+  assert.equal(before.verification.ok, false);
+  runAdopt(dir, { sourceRoot: SOURCE_ROOT, mode: 'apply' });
+  const after = runAdopt(dir, { sourceRoot: SOURCE_ROOT, mode: 'verify' });
+  assert.equal(after.verification.ok, true);
+  assert.deepEqual(after.verification.missing, []);
+});
 ```
 
 - [ ] **Step 2: 테스트 실행해서 실패 확인**
@@ -1020,40 +1191,65 @@ Expected: FAIL — `Cannot find module '../adopt.mjs'`
 ```js
 #!/usr/bin/env node
 // scripts/adopt.mjs
-// 운영중 프로젝트 입양: 감지 → selective vendor → CLAUDE.md 합성 → 갭 리포트.
+// 운영중 프로젝트 입양: 감지 → (모드별) vendor/검증 → 갭 리포트.
 // 소스 코드를 절대 수정하지 않는다. Idempotent.
 //
-// CLI:  node scripts/adopt.mjs [--lang ko|en]   (대상 = cwd 또는 PROJECT_ROOT)
+// 모드:
+//   apply   (기본) 규칙 vendoring + CLAUDE.md 합성 + adopt-report.md 작성
+//   dry-run        감지+갭만, 아무것도 안 씀 (read-only 점검)
+//   verify         설치 상태 검증(예상 규칙 파일/관리블록 존재), 안 씀
+//
+// CLI: node scripts/adopt.mjs [--lang ko|en] [--dry-run] [--verify]
+//      (대상 = cwd 또는 PROJECT_ROOT)
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { info, ok, warn } from './lib/util.mjs';
+import { info, ok, warn, hasManagedBlock } from './lib/util.mjs';
 import { detectStacks } from './lib/stack-detect.mjs';
 import { analyzeGaps, renderReport } from './lib/gap-analysis.mjs';
-import { vendorRules, mergeClaudeMd } from './lib/vendor.mjs';
+import { vendorRules, mergeClaudeMd, plannedRuleFiles } from './lib/vendor.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_SOURCE_ROOT = path.resolve(SCRIPT_DIR, '..');
 
+// 설치 상태 검증 (read-only): 예상 규칙 파일 + CLAUDE.md 관리블록 존재 확인.
+function verifyInstalled(repoDir, detected) {
+  const claudeDir = path.join(repoDir, '.claude');
+  const missing = [];
+  for (const rel of plannedRuleFiles(detected)) {
+    if (!fs.existsSync(path.join(claudeDir, rel))) missing.push(rel);
+  }
+  const claudeMd = path.join(repoDir, 'CLAUDE.md');
+  const mdOk = fs.existsSync(claudeMd) && hasManagedBlock(fs.readFileSync(claudeMd, 'utf8'));
+  if (!mdOk) missing.push('CLAUDE.md (managed block)');
+  return { ok: missing.length === 0, missing };
+}
+
 export function runAdopt(repoDir, opts = {}) {
   const sourceRoot = opts.sourceRoot || DEFAULT_SOURCE_ROOT;
   const lang = opts.lang || 'en';
+  const mode = opts.mode || 'apply';
   const stacksDir = path.join(sourceRoot, 'claude-rules', 'stacks');
 
   const detected = detectStacks(repoDir, { stacksDir });
+  const gaps = analyzeGaps(repoDir, detected);
+  const report = renderReport(gaps, detected);
 
-  // selective vendoring (코드 비파괴 — .claude/ 와 CLAUDE.md 만 건드림)
+  if (mode === 'dry-run') {
+    return { mode, detected, gaps, report }; // read-only: 아무 파일도 안 씀
+  }
+  if (mode === 'verify') {
+    return { mode, detected, gaps, report, verification: verifyInstalled(repoDir, detected) };
+  }
+
+  // apply (코드 비파괴 — .claude/ 와 CLAUDE.md 만 건드림)
   vendorRules(repoDir, sourceRoot, detected, lang);
   mergeClaudeMd(repoDir, detected);
-
-  // 갭 리포트 (읽기 전용 진단)
-  const gaps = analyzeGaps(repoDir, detected);
   const reportPath = path.join(repoDir, '.claude', 'adopt-report.md');
   fs.mkdirSync(path.dirname(reportPath), { recursive: true });
-  fs.writeFileSync(reportPath, renderReport(gaps, detected));
-
-  return { detected, gaps, reportPath };
+  fs.writeFileSync(reportPath, report);
+  return { mode, detected, gaps, report, reportPath };
 }
 
 // ---- CLI ----
@@ -1062,33 +1258,42 @@ if (isMain) {
   const argv = process.argv.slice(2);
   const langIdx = argv.indexOf('--lang');
   const lang = langIdx >= 0 ? argv[langIdx + 1] : 'en';
+  const mode = argv.includes('--dry-run') ? 'dry-run' : argv.includes('--verify') ? 'verify' : 'apply';
   const repoDir = process.env.PROJECT_ROOT || process.cwd();
-  info(`Adopting existing project: ${repoDir}`);
-  const { detected, gaps, reportPath } = runAdopt(repoDir, { lang });
-  ok(`Detected ${detected.length} stack(s); rules vendored to ./.claude/rules/`);
-  if (gaps.unsupportedStacks.length) {
-    warn(`Generic-only stacks (no dedicated rule): ${gaps.unsupportedStacks.join(', ')}`);
+  info(`Adopt (${mode}): ${repoDir}`);
+  const res = runAdopt(repoDir, { lang, mode });
+  if (mode === 'dry-run') {
+    console.log('\n' + res.report);
+    ok('Dry-run 완료 — 아무 파일도 변경하지 않았습니다.');
+  } else if (mode === 'verify') {
+    if (res.verification.ok) ok('Verify 통과 — 예상 규칙/관리블록 모두 존재.');
+    else warn(`Verify 누락: ${res.verification.missing.join(', ')}`);
+  } else {
+    ok(`Detected ${res.detected.length} stack(s); rules vendored to ./.claude/rules/`);
+    if (res.gaps.unsupportedStacks.length) {
+      warn(`Generic-only stacks (no dedicated rule): ${res.gaps.unsupportedStacks.join(', ')}`);
+    }
+    ok(`Gap report: ${res.reportPath}`);
+    console.log('\n소스 코드는 변경되지 않았습니다. 리포트의 제안은 승인 후 별도 진행하세요.');
   }
-  ok(`Gap report: ${reportPath}`);
-  console.log('\n소스 코드는 변경되지 않았습니다. 리포트의 제안은 승인 후 별도 진행하세요.');
 }
 ```
 
 - [ ] **Step 4: 테스트 실행해서 통과 확인**
 
 Run: `node --test scripts/lib/adopt.test.mjs`
-Expected: PASS (5 tests)
+Expected: PASS (7 tests)
 
 - [ ] **Step 5: 전체 테스트 스위트 통과 확인**
 
 Run: `npm test`
-Expected: 전체 PASS (Phase1 11 + gap 4 + adopt 5 = 20 tests)
+Expected: 전체 PASS (stack-detect 13 + gap 4 + adopt 7 = 24 tests)
 
 - [ ] **Step 6: 커밋**
 
 ```bash
 git add scripts/adopt.mjs scripts/lib/adopt.test.mjs
-git commit -m "feat(adopt): adopt.mjs orchestrator (detect→vendor→report), code-nondestructive + idempotent"
+git commit -m "feat(adopt): adopt.mjs orchestrator with apply/dry-run/verify modes (code-nondestructive, idempotent)"
 ```
 
 ---
@@ -1185,6 +1390,14 @@ PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --lang en
 
 Unsupported-but-in-use stacks fall back to capability-generic rules and are
 flagged in the report for optional dedicated-rule authoring later.
+
+Preview without changing anything (`--dry-run`), or verify an applied install
+(`--verify`):
+
+```bash
+PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --dry-run
+PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --verify
+```
 ```
 
 - [ ] **Step 2: 전체 테스트 + lint-free 확인**
@@ -1217,14 +1430,62 @@ git commit -m "docs(readme): document adopt-existing flow"
 
 ---
 
+## Task 11: `inspect-project` 스킬 (read-only 점검)
+
+**Files:**
+- Create: `skills/inspect-project/SKILL.md`
+
+adopt를 적용하지 않고 현재 상태만 진단하는 read-only 스킬. `adopt.mjs --dry-run`(점검)과 `--verify`(적용후 검증)를 감싼다.
+
+- [ ] **Step 1: `SKILL.md` 작성**
+
+```markdown
+---
+name: inspect-project
+description: Read-only inspection of a project's stack and governance gaps WITHOUT modifying anything. Detects in-use stacks, classifies each as named/generic, and reports missing governance — a dry-run of adopt-existing-project. Use when the user wants to check current state, audit governance, or preview what adoption would do before applying. Also covers post-adoption verification.
+---
+
+# Inspect Project (read-only)
+
+현재 프로젝트의 스택과 거버넌스 갭을 **아무것도 바꾸지 않고** 진단한다. (`adopt-existing-project`의 dry-run)
+
+## When to Use
+- "지금 상태 점검", "뭐가 빠졌나", "적용하면 뭐가 바뀌나 미리 보기"
+- 입양(adopt) 적용 전 영향 미리 확인, 또는 적용 후 설치 검증
+
+## 점검 (적용 전, read-only)
+```bash
+PROJECT_ROOT=/path/to/target node /path/to/project-starter/scripts/adopt.mjs --dry-run
+```
+출력: 감지된 스택(✅ named / ⚠️ generic) + 누락 거버넌스. **파일을 전혀 쓰지 않는다.**
+
+## 검증 (적용 후)
+```bash
+PROJECT_ROOT=/path/to/target node /path/to/project-starter/scripts/adopt.mjs --verify
+```
+예상 규칙 파일·CLAUDE.md 관리블록이 모두 있으면 통과, 없으면 누락 목록 출력. (read-only)
+
+## 불변 원칙
+- `--dry-run`·`--verify`는 **read-only** — 어떤 파일도 수정하지 않는다.
+```
+
+- [ ] **Step 2: 커밋**
+
+```bash
+git add skills/inspect-project/SKILL.md
+git commit -m "feat(skill): add inspect-project read-only skill (dry-run/verify wrapper)"
+```
+
+---
+
 ## 완료 기준 (Definition of Done)
 
-- [ ] `npm test` 전부 통과 (20 tests)
-- [ ] `claude-rules/capabilities/` 6개 + `stacks/drizzle.md`,`stacks/d1.md` 존재
-- [ ] `scripts/lib/stack-detect.mjs` — scaffold-at에서 named/generic 정확 분류
-- [ ] `scripts/adopt.mjs` — 코드 0-diff, self-contained vendoring, idempotent (통합 테스트로 강제)
-- [ ] `skills/adopt-existing-project/SKILL.md` 존재
-- [ ] scaffold-at 드라이런에서 소스 변경 0 확인
+- [ ] `npm test` 전부 통과 (~24 tests)
+- [ ] `claude-rules/capabilities/` 11개 (auth/payments/hosting/email/ai 포함) + `stacks/drizzle.md`,`stacks/d1.md` 존재
+- [ ] `scripts/lib/stack-detect.mjs` — scaffold-at에서 named/generic 정확 분류 (auth/payments 포함)
+- [ ] `scripts/adopt.mjs` — apply/dry-run/verify 3모드; 코드 0-diff, self-contained vendoring, idempotent (통합 테스트로 강제)
+- [ ] `skills/adopt-existing-project/SKILL.md` + `skills/inspect-project/SKILL.md` 존재
+- [ ] scaffold-at 드라이런(`--dry-run`)에서 소스 변경 0 확인
 
 ## 의도적 보류 (이 플랜 밖)
 - **스펙 §5.5 — bootstrap 감지 분기**: `new-project-bootstrap`의 Supabase 고정 선택을 `stack-detect` 기반으로 바꾸는 작업은 **신규 프로젝트 경로에만** 영향을 준다. 이번 목표(운영중 프로젝트 입양)와 무관하므로 보류한다. `stack-detect`가 이 플랜에서 완성되므로 후속 플랜에서 bootstrap에 끼우기만 하면 된다.
