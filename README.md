@@ -14,6 +14,28 @@ Designed to replicate a consistent dev environment across machines in one comman
 - **Stack opt-in rules** (`~/.claude/rules/stacks/`): Next.js, Supabase, Vercel, Cloudflare, Playwright, Vitest, Claude API, Sentry, Amplitude, Tailwind + shadcn/ui, Resend
 - **Bootstrap skill** (`~/.agents/skills/new-project-bootstrap/`): one-prompt new project setup with Next.js 15 + TypeScript + pnpm + Supabase + Sentry + Amplitude + Vitest + Playwright
 
+### Adopt an existing project
+
+For a repo that already has code, use the adopt flow instead of bootstrap — it
+detects the in-use stack, vendors only the matching rules into `./.claude/rules/`,
+synthesizes a `CLAUDE.md` managed block, and writes a non-destructive
+`./.claude/adopt-report.md`. It never modifies your source code.
+
+```bash
+PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --lang en
+```
+
+Unsupported-but-in-use stacks fall back to capability-generic rules and are
+flagged in the report for optional dedicated-rule authoring later.
+
+Preview without changing anything (`--dry-run`), or verify an applied install
+(`--verify`):
+
+```bash
+PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --dry-run
+PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --verify
+```
+
 ## Install
 
 Under the hood the installer is plain Node.js (`scripts/install.mjs`), so behaviour is identical everywhere — only the entry command differs per platform. Pick your platform below.
