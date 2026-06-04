@@ -26,6 +26,15 @@ function capabilityFiles(detected) {
   return [...caps].map((c) => `${c}.md`);
 }
 
+// src 존재 여부를 먼저 확인하고 복사. 잘못된 sourceRoot에 대한 명확한 오류를 제공한다.
+function copyRule(src, dest, TS) {
+  if (!exists(src)) {
+    throw new Error(`vendor: source rule file not found: ${src}`);
+  }
+  backupIfExists(dest, TS);
+  fs.copyFileSync(src, dest);
+}
+
 // 감지된 named 스택 → 설치할 stacks 규칙 파일명
 function namedStackFiles(detected) {
   return detected.filter((d) => d.ruleStatus === 'named').map((d) => `${d.stack}.md`);
@@ -69,22 +78,19 @@ export function vendorRules(repoDir, sourceRoot, detected, lang = 'en') {
   for (const f of ['language.md', 'agent-teams.md', 'skill-activation.md']) {
     const src = path.join(sourceRoot, 'claude-rules', lang, f);
     const dest = path.join(rulesDir, f);
-    backupIfExists(dest, TS);
-    fs.copyFileSync(src, dest);
+    copyRule(src, dest, TS);
   }
   // capability generic 규칙 (감지된 것만)
   for (const f of capabilityFiles(detected)) {
     const src = path.join(sourceRoot, 'claude-rules', 'capabilities', f);
     const dest = path.join(rulesDir, 'capabilities', f);
-    backupIfExists(dest, TS);
-    fs.copyFileSync(src, dest);
+    copyRule(src, dest, TS);
   }
   // named 스택 규칙 (감지된 것만)
   for (const f of namedStackFiles(detected)) {
     const src = path.join(sourceRoot, 'claude-rules', 'stacks', f);
     const dest = path.join(rulesDir, 'stacks', f);
-    backupIfExists(dest, TS);
-    fs.copyFileSync(src, dest);
+    copyRule(src, dest, TS);
   }
   return { rulesDir };
 }
