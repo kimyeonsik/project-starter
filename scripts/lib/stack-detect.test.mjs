@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import path from 'node:path';
 import { classify, makeSignals } from './stack-detect.mjs';
 
 // availableNamed: 툴킷이 보유한 stacks/<name>.md 파일명(확장자 제외) 집합
@@ -68,4 +69,67 @@ test('classify: stripe dep → payments, generic', () => {
   const got = classify(sig, NAMED);
   assert.equal(got.find((d) => d.stack === 'stripe')?.capability, 'payments');
   assert.equal(got.find((d) => d.stack === 'stripe')?.ruleStatus, 'generic');
+});
+
+import fs from 'node:fs';
+import os from 'node:os';
+import { gatherSignals, detectStacks } from './stack-detect.mjs';
+
+function mkRepo(files) {
+  // files: { 'package.json': {...obj}, 'wrangler.toml': 'text', ... }
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ps-detect-'));
+  for (const [rel, content] of Object.entries(files)) {
+    const full = path.join(dir, rel);
+    fs.mkdirSync(path.dirname(full), { recursive: true });
+    fs.writeFileSync(full, typeof content === 'string' ? content : JSON.stringify(content));
+  }
+  return dir;
+}
+
+test('gatherSignals: reads deps + devDeps + config files', () => {
+  const dir = mkRepo({
+    'package.json': { dependencies: { next: '15.0.0' }, devDependencies: { vitest: '2.0.0' } },
+    'drizzle.config.ts': 'export default {}',
+  });
+  const sig = gatherSignals(dir);
+  assert.ok(sig.hasDep('next'));
+  assert.ok(sig.hasDep('vitest'));
+  assert.ok(sig.hasFile('drizzle.config'));
+});
+
+test('gatherSignals: wrangler with d1_databases sets wranglerHasD1', () => {
+  const dir = mkRepo({
+    'package.json': {},
+    'wrangler.toml': '[[d1_databases]]\nbinding = "DB"\n',
+  });
+  const sig = gatherSignals(dir);
+  assert.equal(sig.wranglerHasD1, true);
+});
+
+test('detectStacks: scaffold-at-like repo → expected named stacks', () => {
+  const dir = mkRepo({
+    'package.json': {
+      dependencies: {
+        next: '15', 'drizzle-orm': '0.3', '@opennextjs/cloudflare': '1',
+        '@sentry/nextjs': '8', '@amplitude/analytics-browser': '2',
+      },
+      devDependencies: { vitest: '2', '@playwright/test': '1' },
+    },
+    'wrangler.toml': '[[d1_databases]]\nbinding="DB"\n',
+    'vercel.json': '{}',
+  });
+  const got = detectStacks(dir);
+  const byStack = Object.fromEntries(got.map((d) => [d.stack, d]));
+  assert.equal(byStack.nextjs.ruleStatus, 'named');
+  assert.equal(byStack.drizzle.ruleStatus, 'named');
+  assert.equal(byStack.d1.ruleStatus, 'named');
+  assert.equal(byStack.cloudflare.ruleStatus, 'named');
+  assert.equal(byStack.sentry.ruleStatus, 'named');
+  assert.equal(byStack.vitest.ruleStatus, 'named');
+});
+
+test('detectStacks: prisma repo → generic database (in-use but unsupported)', () => {
+  const dir = mkRepo({ 'package.json': { dependencies: { '@prisma/client': '5' } } });
+  const got = detectStacks(dir);
+  assert.equal(got.find((d) => d.stack === 'prisma')?.ruleStatus, 'generic');
 });
