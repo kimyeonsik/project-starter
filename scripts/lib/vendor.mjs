@@ -27,11 +27,15 @@ function capabilityFiles(detected) {
 }
 
 // src 존재 여부를 먼저 확인하고 복사. 잘못된 sourceRoot에 대한 명확한 오류를 제공한다.
+// 내용이 동일하면 no-op (백업 없음). 내용이 다를 때만 백업 후 덮어쓴다.
 function copyRule(src, dest, TS) {
   if (!exists(src)) {
     throw new Error(`vendor: source rule file not found: ${src}`);
   }
-  backupIfExists(dest, TS);
+  if (exists(dest)) {
+    if (fs.readFileSync(src).equals(fs.readFileSync(dest))) return; // identical → no-op, no backup
+    backupIfExists(dest, TS);
+  }
   fs.copyFileSync(src, dest);
 }
 
@@ -105,16 +109,20 @@ export function plannedRuleFiles(detected) {
 }
 
 // CLAUDE.md 에 managed block 합성/갱신 (idempotent). 기존 사용자 내용 보존.
+// 계산된 merged 결과가 현재 파일과 동일하면 백업/쓰기 없이 그대로 반환.
 export function mergeClaudeMd(repoDir, detected) {
   const TS = timestamp();
   const claudeMd = path.join(repoDir, 'CLAUDE.md');
   const block = wrapManagedBlock(buildManagedBody(detected));
   if (exists(claudeMd)) {
+    const current = fs.readFileSync(claudeMd, 'utf8');
+    let base = current;
+    if (hasManagedBlock(base)) base = stripManagedBlock(base);
+    base = base.replace(/\n+$/, '');
+    const merged = base.length ? `${base}\n\n${block}` : block;
+    if (merged === current) return { claudeMd }; // identical → no backup, no write
     backupIfExists(claudeMd, TS);
-    let content = fs.readFileSync(claudeMd, 'utf8');
-    if (hasManagedBlock(content)) content = stripManagedBlock(content);
-    content = content.replace(/\n+$/, '');
-    fs.writeFileSync(claudeMd, content.length ? `${content}\n\n${block}` : block);
+    fs.writeFileSync(claudeMd, merged);
   } else {
     fs.writeFileSync(claudeMd, block);
   }

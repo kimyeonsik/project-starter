@@ -55,10 +55,12 @@ export function runAdopt(repoDir, opts = {}) {
   // apply (코드 비파괴 — .claude/ 와 CLAUDE.md 만 건드림)
   vendorRules(repoDir, sourceRoot, detected, lang);
   mergeClaudeMd(repoDir, detected);
+  const postGaps = analyzeGaps(repoDir, detected);
+  const postReport = renderReport(postGaps, detected);
   const reportPath = path.join(repoDir, '.claude', 'adopt-report.md');
   fs.mkdirSync(path.dirname(reportPath), { recursive: true });
-  fs.writeFileSync(reportPath, report);
-  return { mode, detected, gaps, report, reportPath };
+  fs.writeFileSync(reportPath, postReport);
+  return { mode, detected, gaps: postGaps, report: postReport, reportPath };
 }
 
 // ---- CLI ----

@@ -97,6 +97,22 @@ test('runAdopt dry-run: read-only, writes nothing', () => {
   assert.ok(!fs.existsSync(path.join(dir, 'CLAUDE.md')));
 });
 
+test('runAdopt apply: re-apply leaves no backup files (clean idempotent)', () => {
+  const dir = mkRepo({ 'package.json': { dependencies: { next: '15', '@prisma/client': '5' } } });
+  runAdopt(dir, { sourceRoot: SOURCE_ROOT });
+  runAdopt(dir, { sourceRoot: SOURCE_ROOT });
+  const found = [];
+  const walk = (d) => { for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+    const p = path.join(d, e.name);
+    if (e.isDirectory()) walk(p); else if (e.name.includes('.backup-')) found.push(p);
+  }};
+  walk(path.join(dir, '.claude', 'rules'));
+  assert.deepEqual(found, []);
+  // CLAUDE.md 백업도 없어야 함
+  const rootBackups = fs.readdirSync(dir).filter((f) => f.includes('CLAUDE.md.backup-'));
+  assert.deepEqual(rootBackups, []);
+});
+
 test('runAdopt verify: false before apply, true after', () => {
   const dir = mkRepo({ 'package.json': { dependencies: { next: '15', '@clerk/nextjs': '5' } } });
   const before = runAdopt(dir, { sourceRoot: SOURCE_ROOT, mode: 'verify' });

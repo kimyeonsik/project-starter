@@ -244,7 +244,7 @@ M=$(grep -c "BEGIN project-starter" "$HOME/.claude/CLAUDE.md" 2>/dev/null || ech
 R=$(ls "$HOME/.claude/rules/language.md" "$HOME/.claude/rules/agent-teams.md" "$HOME/.claude/rules/skill-activation.md" 2>/dev/null | wc -l | tr -d " ")
 S=$(find "$HOME/.claude/rules/stacks" -maxdepth 1 -name "*.md" 2>/dev/null | wc -l | tr -d " ")
 K=$([ -f "$HOME/.agents/skills/new-project-bootstrap/SKILL.md" ] && echo OK || echo MISSING)
-echo "Marker: $M"; echo "Rules: $R/3"; echo "Stacks: $S/6"; echo "Skill: $K"
+echo "Marker: $M"; echo "Rules: $R/3"; echo "Stacks: $S/13"; echo "Skill: $K"
 '
 ```
 
@@ -252,14 +252,14 @@ Expected output:
 ```
 Marker: 1
 Rules: 3/3
-Stacks: 6/6
+Stacks: 13/13
 Skill: OK
 ```
 
 Diagnosis:
 - `Marker: 0` → managed block missing; re-run `install.sh`
 - `Marker: 2` or higher → duplicate (older install bug); re-run `install.sh` to self-heal
-- `Rules: 0/3` or `Stacks: 0/6` or `Skill: MISSING` → installer didn't finish; re-run
+- `Rules: 0/3` or `Stacks: 0/13` or `Skill: MISSING` → installer didn't finish; re-run
 
 ### One-line health check (project scope)
 
