@@ -1,4 +1,4 @@
-import { test } from 'node:test';
+import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -8,8 +8,11 @@ import { runAdopt } from '../adopt.mjs';
 
 const SOURCE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
+const created = [];
+
 function mkRepo(files) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ps-adopt-'));
+  created.push(dir);
   for (const [rel, content] of Object.entries(files)) {
     const full = path.join(dir, rel);
     fs.mkdirSync(path.dirname(full), { recursive: true });
@@ -17,6 +20,10 @@ function mkRepo(files) {
   }
   return dir;
 }
+
+after(() => {
+  for (const d of created) fs.rmSync(d, { recursive: true, force: true });
+});
 
 function snapshot(dir) {
   // 소스 코드 파일들의 (경로→내용) 맵. .claude/ 와 CLAUDE.md 는 제외(우리가 만드는 것).

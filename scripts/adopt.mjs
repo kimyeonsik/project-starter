@@ -14,7 +14,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { info, ok, warn, hasManagedBlock } from './lib/util.mjs';
+import { info, ok, warn, err, hasManagedBlock } from './lib/util.mjs';
 import { detectStacks } from './lib/stack-detect.mjs';
 import { analyzeGaps, renderReport } from './lib/gap-analysis.mjs';
 import { vendorRules, mergeClaudeMd, plannedRuleFiles } from './lib/vendor.mjs';
@@ -66,7 +66,13 @@ const isMain = process.argv[1] && path.resolve(process.argv[1]) === path.resolve
 if (isMain) {
   const argv = process.argv.slice(2);
   const langIdx = argv.indexOf('--lang');
-  const lang = langIdx >= 0 ? argv[langIdx + 1] : 'en';
+  const VALID_LANGS = new Set(['ko', 'en']);
+  const langArg = langIdx >= 0 ? argv[langIdx + 1] : 'en';
+  if (!VALID_LANGS.has(langArg)) {
+    err(`Invalid --lang value: "${langArg}". Use ko or en.`);
+    process.exit(1);
+  }
+  const lang = langArg;
   const mode = argv.includes('--dry-run') ? 'dry-run' : argv.includes('--verify') ? 'verify' : 'apply';
   const repoDir = process.env.PROJECT_ROOT || process.cwd();
   info(`Adopt (${mode}): ${repoDir}`);
