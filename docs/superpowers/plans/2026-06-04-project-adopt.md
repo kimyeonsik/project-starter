@@ -63,10 +63,12 @@ project-starter는 현재 package.json이 없다. 외부 의존성을 들이지 
   "type": "module",
   "engines": { "node": ">=20" },
   "scripts": {
-    "test": "node --test scripts/lib/"
+    "test": "node --test"
   }
 }
 ```
+
+> `node --test`(인자 없는 기본 디스커버리)는 repo 전체에서 `**/*.test.mjs`를 찾고 node_modules는 제외한다. 디렉토리 인자(`node --test scripts/lib/`)는 일부 Node 버전(예: v25.x)에서 `Cannot find module`로 실패하므로 사용하지 않는다.
 
 - [ ] **Step 2: 빈 테스트로 하니스 동작 확인**
 
