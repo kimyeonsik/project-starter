@@ -100,6 +100,7 @@
 | Vitest, `*.test.ts` (Playwright 제외) | `obra/superpowers@test-driven-development` |
 | Tailwind / shadcn, `components/ui/`, 유틸리티 클래스 | `frontend-design` (+ 완료 전 `accessibility`) |
 | Resend, `resend.emails.send`, `@react-email/*` | 서버사이드 전송, 시크릿은 `setup-secrets` 경유 |
+| `.github/workflows/*.yml`, CI 실패, "PR에서 테스트" | `stacks/github-actions.md` (실패 job 로그 먼저 확인) |
 
 ## 정기 점검 (운영)
 

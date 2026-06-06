@@ -10,9 +10,9 @@
 
 ## 설치되는 것
 
-- **글로벌 규칙** (`~/.claude/rules/`): 언어 정책, Agent Teams 워크플로우, 스킬 자동 활성화 매트릭스
-- **스택 옵트인 규칙** (`~/.claude/rules/stacks/`): Next.js, Supabase, Vercel, Cloudflare, Playwright, Vitest, Claude API, Sentry, Amplitude, Tailwind + shadcn/ui, Resend
-- **부트스트랩 스킬** (`~/.agents/skills/new-project-bootstrap/`): Next.js 15 + TypeScript + pnpm + Supabase + Sentry + Amplitude + Vitest + Playwright을 프롬프트 한 번으로 셋업
+- **글로벌 규칙** (`~/.claude/rules/`): 언어 정책, Agent Teams 워크플로우, 스킬 자동 활성화 매트릭스, git 워크플로우(브랜칭/커밋/PR), ADR 규율, 보안 베이스라인
+- **스택 옵트인 규칙** (`~/.claude/rules/stacks/`): Next.js, Supabase, Vercel, Cloudflare, Playwright, Vitest, Claude API, Sentry, Amplitude, Tailwind + shadcn/ui, Resend, GitHub Actions
+- **부트스트랩 스킬** (`~/.agents/skills/new-project-bootstrap/`): Next.js 15 + TypeScript + pnpm + Supabase + Sentry + Amplitude + Vitest + Playwright + GitHub Actions CI를 프롬프트 한 번으로 셋업
 
 ## 설치
 

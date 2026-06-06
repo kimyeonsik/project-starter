@@ -3,6 +3,9 @@
 @~/.claude/rules/language.md
 @~/.claude/rules/agent-teams.md
 @~/.claude/rules/skill-activation.md
+@~/.claude/rules/git-workflow.md
+@~/.claude/rules/adr.md
+@~/.claude/rules/security.md
 
 ## Rule Update Guide
 
@@ -11,6 +14,9 @@
 | Language policy | `rules/language.md` |
 | Agent Teams workflow | `rules/agent-teams.md` |
 | Skill auto-activation (stack-agnostic) | `rules/skill-activation.md` |
+| Git workflow (branching / commits / PR) | `rules/git-workflow.md` |
+| ADR discipline | `rules/adr.md` |
+| Security baseline | `rules/security.md` |
 | Stack-specific mappings | `rules/stacks/<stack>.md` |
 
 ## Stack Rules (project CLAUDE.md opt-in)
@@ -24,4 +30,4 @@ Global makes no stack assumption. Each project CLAUDE.md opts in to the stacks i
 @~/.claude/rules/stacks/supabase.md
 ```
 
-Available: `nextjs`, `supabase`, `vercel`, `cloudflare`, `playwright`, `claude-api`, `sentry`, `amplitude`, `vitest`, `tailwind`, `resend`
+Available: `nextjs`, `supabase`, `vercel`, `cloudflare`, `playwright`, `claude-api`, `sentry`, `amplitude`, `vitest`, `tailwind`, `resend`, `github-actions`

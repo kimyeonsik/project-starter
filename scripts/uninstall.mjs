@@ -263,7 +263,14 @@ if (exists(MANIFEST)) {
     process.exit(0);
   }
 
-  for (const f of ['language.md', 'agent-teams.md', 'skill-activation.md']) {
+  for (const f of [
+    'language.md',
+    'agent-teams.md',
+    'skill-activation.md',
+    'git-workflow.md',
+    'adr.md',
+    'security.md',
+  ]) {
     const p = path.join(RULES_DIR, f);
     if (exists(p)) {
       rmFile(p);

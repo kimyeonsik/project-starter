@@ -100,6 +100,7 @@ When the project's CLAUDE.md imports a stack rule, that stack's signals cumulati
 | Vitest, `*.test.ts` (non-Playwright) | `obra/superpowers@test-driven-development` |
 | Tailwind / shadcn, `components/ui/`, utility classes | `frontend-design` (+ `accessibility` before done) |
 | Resend, `resend.emails.send`, `@react-email/*` | server-side send, secret via `setup-secrets` |
+| `.github/workflows/*.yml`, CI failing, "run tests on PR" | `stacks/github-actions.md` (read failed job log first) |
 
 ## Maintenance / Operations
 
