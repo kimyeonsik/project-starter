@@ -181,6 +181,91 @@ _inputs/에 정리해서 부트스트랩 컨텍스트로 사용합니다.
 
 `none` 또는 빈 답변이면 Step 0.5 건너뛰고 Stage 1을 그대로 진행. 디폴트 흐름과 동일.
 
+## 중단 및 롤백 (Step별 안전망)
+
+### 진행 추적 메커니즘
+
+각 Step 완료 시 다음을 자동 수행한다:
+
+1. **git commit**: `git add -A && git commit -m "[bootstrap] Step N: <description>"`
+   - 부트스트랩 시작 직전에 `git init`은 Step 1에서 실행됨
+   - Step 0/0.5는 git 외부 작업이라 별도 트래킹
+2. **진행 로그**: `_team/bootstrap-progress.md`에 단계별 추가
+   ```markdown
+   ## [2026-05-31 14:23] Step N: <description>
+   - 변경 파일: <list>
+   - 외부 리소스 생성: <list — 예: Sentry project xxx>
+   - git commit: <sha>
+   ```
+3. **외부 리소스 추적**: 코드 외 작업(GitHub 레포 생성, Sentry 프로젝트, Supabase 프로젝트 등)을 별도 기록 → 롤백 시 사용자에게 정리 안내
+
+### 중단 트리거
+
+다음 시그널 발생 시 즉시 일시 정지하고 사용자에게 선택지를 보여준다.
+
+- **사용자 명시**: "중단", "롤백", "되돌리자", "처음부터", "stop", "rollback"
+- **단계 실패 반복**: 같은 Step이 2회 연속 실패
+- **AI 자체 판단**: 검증 단계(`pnpm test`, `pnpm build`)가 실패해 진행 의미 없음
+
+### 롤백 옵션 (사용자에게 제시)
+
+```
+부트스트랩이 Step N에서 중단됐습니다. 어떻게 처리할까요?
+
+  1) Full rollback — Step 1 직전 상태로 되돌림 (스캐폴드 전체 제거)
+       명령: git reset --hard <baseline>
+              git clean -fd
+       
+  2) Partial rollback — 마지막 안정 단계로 되돌림 (Step N-1 끝 시점)
+       명령: git reset --hard <last-safe-commit>
+       
+  3) Keep as-is — 현재 상태 유지, 부트스트랩만 종료
+       추가 정리 안 함. 수동으로 이어가거나 정리 가능.
+
+외부 리소스도 같이 정리할까요? (y/n)
+  - Sentry 프로젝트: <project-id>     (대시보드에서 삭제)
+  - Supabase 프로젝트: <project-id>   (MCP delete_project 호출 가능)
+  - GitHub 레포: <repo-name>          (gh repo delete 호출 가능)
+  - Vercel 배포: <deployment-id>      (vercel rm 또는 대시보드)
+```
+
+선택 1, 2는 자동 실행. 외부 리소스는 사용자 동의 시 자동 정리 시도.
+
+### 외부 리소스 정리 명령
+
+| 리소스 | 정리 명령 |
+|---|---|
+| GitHub 레포 | `gh repo delete <owner>/<name> --yes` |
+| Supabase 프로젝트 | Supabase MCP `delete_project(project_id)` 호출 |
+| Vercel 프로젝트/배포 | `vercel rm <project-name>` 또는 Vercel MCP |
+| Sentry 프로젝트 | 자동 삭제 API 없음 → 대시보드 URL 안내 |
+| Amplitude 프로젝트 | 자동 삭제 API 없음 → 대시보드 URL 안내 |
+
+### 롤백 후 보고
+
+```
+✓ Full rollback 완료
+   git: <baseline-sha>로 reset
+   현재 디렉토리 상태: <원래 _inputs/ 외 비어있음>
+
+자동 정리됨:
+   ✓ GitHub 레포 삭제: kimyeonsik/class-vietnamu
+   ✓ Supabase 프로젝트 삭제: xyz123
+
+수동 정리 필요:
+   ! Sentry 프로젝트: https://sentry.io/settings/orgs/yk/projects/class-vietnamu/
+   ! Amplitude 프로젝트: https://app.amplitude.com/...
+```
+
+### 베이스라인 태그
+
+부트스트랩 시작 시 `bootstrap-baseline` 태그를 git에 작성:
+```bash
+git tag -f bootstrap-baseline
+```
+
+Full rollback은 항상 이 태그로 복귀. Partial rollback은 단계별 commit 메시지 (`[bootstrap] Step N`)로 검색해 직전 안정 단계 찾음.
+
 ### Step 1: 환경 확인
 
 버전 확인 (모든 OS 동일):
@@ -199,6 +284,19 @@ Get-Location; Get-ChildItem -Force  # Windows / PowerShell
 ```
 
 빈 디렉토리가 아니면 (`.git` 외 파일 존재) **중단하고 사용자 확인**.
+
+**진행 추적 시작**: 환경 확인 통과 후 `git init` 실행 + 베이스라인 태그 작성.
+```bash
+git init
+git add -A
+git commit -m "[bootstrap] Step 1: environment baseline" --allow-empty
+git tag bootstrap-baseline
+mkdir -p _team
+echo "# Bootstrap Progress Log" > _team/bootstrap-progress.md
+echo "## [$(date '+%Y-%m-%d %H:%M')] baseline" >> _team/bootstrap-progress.md
+```
+
+> 주: Step 10(Git + GitHub)에도 `git init`이 있다 — 이 진행추적이 활성화되면 Step 10의 init은 중복이므로 거기선 생략하고 원격 연결/푸시만 수행한다.
 
 ### Step 2: Next.js 스캐폴드
 
