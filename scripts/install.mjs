@@ -181,7 +181,7 @@ const ESSENTIAL_SKILLS = [
   'mattpocock/skills@request-refactor-plan',
 ];
 const WEB_SKILLS = [
-  'vercel-labs/agent-skills@vercel-react-best-practices',
+  'vercel-labs/skills@vercel-react-best-practices',
   'wshobson/agents@nextjs-app-router-patterns',
   'wshobson/agents@typescript-advanced-types',
   'anthropics/skills@webapp-testing',
