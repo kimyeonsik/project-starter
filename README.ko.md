@@ -164,7 +164,7 @@ SKILL_BUNDLE=minimal   bash ...   # 외부 스킬 전부 생략
 
 | 단계 | 추가 스킬 |
 |---|---|
-| 웹 개발 | `vercel-labs/agent-skills@vercel-react-best-practices`, `wshobson/agents@nextjs-app-router-patterns`, `wshobson/agents@typescript-advanced-types` |
+| 웹 개발 | `vercel-labs/skills@vercel-react-best-practices`, `wshobson/agents@nextjs-app-router-patterns`, `wshobson/agents@typescript-advanced-types` |
 | 웹 품질 | `anthropics/skills@webapp-testing`, `addyosmani/web-quality-skills@accessibility` |
 | Supabase 심화 | `supabase/agent-skills@supabase`, `supabase/agent-skills@supabase-postgres-best-practices` |
 
