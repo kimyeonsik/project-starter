@@ -164,7 +164,7 @@ Or pick at the install prompt.
 
 | Stage | Extra skills |
 |---|---|
-| Web dev | `vercel-labs/agent-skills@vercel-react-best-practices`, `wshobson/agents@nextjs-app-router-patterns`, `wshobson/agents@typescript-advanced-types` |
+| Web dev | `vercel-labs/skills@vercel-react-best-practices`, `wshobson/agents@nextjs-app-router-patterns`, `wshobson/agents@typescript-advanced-types` |
 | Web quality | `anthropics/skills@webapp-testing`, `addyosmani/web-quality-skills@accessibility` |
 | Supabase deep | `supabase/agent-skills@supabase`, `supabase/agent-skills@supabase-postgres-best-practices` |
 
