@@ -6,19 +6,10 @@ import path from 'node:path';
 import {
   exists, backupIfExists, stripManagedBlock, hasManagedBlock, wrapManagedBlock, timestamp,
 } from './util.mjs';
+import { CORE_RULES, CAPABILITIES } from './registry.mjs';
 
-// 항상 vendoring되는 코어 규칙 (claude-rules/<lang>/ 에 존재).
-// install.mjs의 코어 목록과 동기화 유지 — 한 곳에서 정의해 3개 소비처가 공유한다.
-const CORE_RULES = [
-  'language.md', 'agent-teams.md', 'skill-activation.md',
-  'git-workflow.md', 'adr.md', 'security.md',
-];
-
-// generic 규칙이 존재하는 capability (capabilities/*.md 와 일치해야 함)
-const GENERIC_CAPS = new Set([
-  'framework', 'test-runner', 'database', 'error-tracking', 'analytics', 'styling',
-  'auth', 'payments', 'hosting', 'email', 'ai',
-]);
+// generic 규칙이 존재하는 capability (capabilities/*.md 와 일치). registry SSOT에서 파생.
+const GENERIC_CAPS = new Set(CAPABILITIES);
 
 // generic capability 규칙은 "해당 capability에 named 없는(=generic/unclassified) 스택이
 // 하나라도 있을 때만" 설치한다 (Tier1 fallback floor). named로 완전히 덮인 capability는 생략.

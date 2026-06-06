@@ -9,6 +9,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { CAPABILITIES } from './registry.mjs';
 
 // ---- 시그널 모델 ----
 // Signals: { deps: Set<string>, hasFile(prefix): bool, wranglerHasD1: bool, hasWrangler: bool }
@@ -61,10 +62,7 @@ const RULES = [
 ];
 
 // capability별 generic 규칙 존재 여부. claude-rules/capabilities/*.md 목록과 동기화 유지 필요.
-const CAPABILITIES_WITH_GENERIC = new Set([
-  'framework', 'test-runner', 'database', 'error-tracking', 'analytics', 'styling',
-  'auth', 'payments', 'hosting', 'email', 'ai',
-]);
+const CAPABILITIES_WITH_GENERIC = new Set(CAPABILITIES); // registry SSOT
 
 export function classify(signals, availableNamed) {
   const out = [];

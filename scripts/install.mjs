@@ -34,21 +34,15 @@ import {
   dirOf,
   IS_WIN,
 } from './lib/util.mjs';
+import {
+  CORE_RULES, ESSENTIAL_SKILLS, WEB_SKILLS, SUPABASE_SKILLS,
+} from './lib/registry.mjs';
 
 const REPO_DIR = path.resolve(dirOf(import.meta.url), '..');
 const TS = timestamp();
 const env = process.env;
 
-// Language-specific core rules (always-on; copied from claude-rules/<lang>/ and
-// imported by the managed CLAUDE.md block). Stack rules under stacks/ are opt-in.
-const CORE_RULES = [
-  'language.md',
-  'agent-teams.md',
-  'skill-activation.md',
-  'git-workflow.md',
-  'adr.md',
-  'security.md',
-];
+// CORE_RULES (always-on core rules) is the SSOT in ./lib/registry.mjs.
 
 function fail(msg) {
   err(msg);
@@ -166,31 +160,7 @@ if (!lang) {
 ok(`Language: ${lang}`);
 
 // ---------- Skill bundle selection ----------
-const ESSENTIAL_SKILLS = [
-  'obra/superpowers@brainstorming',
-  'obra/superpowers@writing-plans',
-  'obra/superpowers@test-driven-development',
-  'obra/superpowers@systematic-debugging',
-  'obra/superpowers@verification-before-completion',
-  'obra/superpowers@requesting-code-review',
-  'mattpocock/skills@grill-me',
-  'vercel-labs/skills@find-skills',
-  'anthropics/skills@frontend-design',
-  'mattpocock/skills@improve-codebase-architecture',
-  'github/awesome-copilot@refactor',
-  'mattpocock/skills@request-refactor-plan',
-];
-const WEB_SKILLS = [
-  'vercel-labs/skills@vercel-react-best-practices',
-  'wshobson/agents@nextjs-app-router-patterns',
-  'wshobson/agents@typescript-advanced-types',
-  'anthropics/skills@webapp-testing',
-  'addyosmani/web-quality-skills@accessibility',
-];
-const SUPABASE_SKILLS = [
-  'supabase/agent-skills@supabase',
-  'supabase/agent-skills@supabase-postgres-best-practices',
-];
+// ESSENTIAL_SKILLS / WEB_SKILLS / SUPABASE_SKILLS are the SSOT in ./lib/registry.mjs.
 
 let bundle = env.SKILL_BUNDLE || '';
 if (!bundle) {
