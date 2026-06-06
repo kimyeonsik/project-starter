@@ -59,6 +59,11 @@ test('runAdopt: vendors rules self-contained (no @~/ imports)', () => {
   const claudeMd = fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8');
   assert.doesNotMatch(claudeMd, /@~\/\.claude/);
   assert.match(claudeMd, /@\.claude\/rules\/language\.md/);
+  // all 6 core rules (incl. git-workflow/adr/security) must be vendored + imported
+  for (const f of ['agent-teams', 'skill-activation', 'git-workflow', 'adr', 'security']) {
+    assert.ok(fs.existsSync(path.join(dir, '.claude', 'rules', `${f}.md`)), `missing core rule: ${f}.md`);
+    assert.match(claudeMd, new RegExp(`@\\.claude/rules/${f}\\.md`));
+  }
 });
 
 test('runAdopt: writes gap report flagging prisma as generic', () => {

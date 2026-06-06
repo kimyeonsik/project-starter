@@ -7,6 +7,13 @@ import {
   exists, backupIfExists, stripManagedBlock, hasManagedBlock, wrapManagedBlock, timestamp,
 } from './util.mjs';
 
+// 항상 vendoring되는 코어 규칙 (claude-rules/<lang>/ 에 존재).
+// install.mjs의 코어 목록과 동기화 유지 — 한 곳에서 정의해 3개 소비처가 공유한다.
+const CORE_RULES = [
+  'language.md', 'agent-teams.md', 'skill-activation.md',
+  'git-workflow.md', 'adr.md', 'security.md',
+];
+
 // generic 규칙이 존재하는 capability (capabilities/*.md 와 일치해야 함)
 const GENERIC_CAPS = new Set([
   'framework', 'test-runner', 'database', 'error-tracking', 'analytics', 'styling',
@@ -49,9 +56,7 @@ export function buildManagedBody(detected) {
   const lines = [];
   lines.push('# Global Rules (managed by project-starter)');
   lines.push('');
-  lines.push('@.claude/rules/language.md');
-  lines.push('@.claude/rules/agent-teams.md');
-  lines.push('@.claude/rules/skill-activation.md');
+  for (const f of CORE_RULES) lines.push(`@.claude/rules/${f}`);
   lines.push('');
   const caps = capabilityFiles(detected);
   if (caps.length) {
@@ -78,8 +83,8 @@ export function vendorRules(repoDir, sourceRoot, detected, lang = 'en') {
   fs.mkdirSync(path.join(rulesDir, 'stacks'), { recursive: true });
   fs.mkdirSync(path.join(rulesDir, 'capabilities'), { recursive: true });
 
-  // core 3종 (언어별)
-  for (const f of ['language.md', 'agent-teams.md', 'skill-activation.md']) {
+  // core 규칙 (언어별)
+  for (const f of CORE_RULES) {
     const src = path.join(sourceRoot, 'claude-rules', lang, f);
     const dest = path.join(rulesDir, f);
     copyRule(src, dest, TS);
@@ -102,7 +107,7 @@ export function vendorRules(repoDir, sourceRoot, detected, lang = 'en') {
 // 이 detected에 대해 vendorRules가 설치할 규칙 파일들의 상대경로(.claude/ 기준).
 // verify 모드가 "설치돼 있어야 할 파일"을 동일 로직으로 재사용하기 위해 export.
 export function plannedRuleFiles(detected) {
-  const files = ['rules/language.md', 'rules/agent-teams.md', 'rules/skill-activation.md'];
+  const files = CORE_RULES.map((f) => `rules/${f}`);
   for (const f of capabilityFiles(detected)) files.push(`rules/capabilities/${f}`);
   for (const f of namedStackFiles(detected)) files.push(`rules/stacks/${f}`);
   return files;
