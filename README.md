@@ -14,6 +14,28 @@ Designed to replicate a consistent dev environment across machines in one comman
 - **Stack opt-in rules** (`~/.claude/rules/stacks/`): Next.js, Supabase, Vercel, Cloudflare, Playwright, Vitest, Claude API, Sentry, Amplitude, Tailwind + shadcn/ui, Resend, GitHub Actions
 - **Bootstrap skill** (`~/.agents/skills/new-project-bootstrap/`): one-prompt new project setup with Next.js 15 + TypeScript + pnpm + Supabase + Sentry + Amplitude + Vitest + Playwright + GitHub Actions CI
 
+### Adopt an existing project
+
+For a repo that already has code, use the adopt flow instead of bootstrap — it
+detects the in-use stack, vendors only the matching rules into `./.claude/rules/`,
+synthesizes a `CLAUDE.md` managed block, and writes a non-destructive
+`./.claude/adopt-report.md`. It never modifies your source code.
+
+```bash
+PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --lang en
+```
+
+Unsupported-but-in-use stacks fall back to capability-generic rules and are
+flagged in the report for optional dedicated-rule authoring later.
+
+Preview without changing anything (`--dry-run`), or verify an applied install
+(`--verify`):
+
+```bash
+PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --dry-run
+PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --verify
+```
+
 ## Install
 
 Under the hood the installer is plain Node.js (`scripts/install.mjs`), so behaviour is identical everywhere — only the entry command differs per platform. Pick your platform below.
@@ -222,7 +244,7 @@ M=$(grep -c "BEGIN project-starter" "$HOME/.claude/CLAUDE.md" 2>/dev/null || ech
 R=$(ls "$HOME/.claude/rules/language.md" "$HOME/.claude/rules/agent-teams.md" "$HOME/.claude/rules/skill-activation.md" 2>/dev/null | wc -l | tr -d " ")
 S=$(find "$HOME/.claude/rules/stacks" -maxdepth 1 -name "*.md" 2>/dev/null | wc -l | tr -d " ")
 K=$([ -f "$HOME/.agents/skills/new-project-bootstrap/SKILL.md" ] && echo OK || echo MISSING)
-echo "Marker: $M"; echo "Rules: $R/3"; echo "Stacks: $S/6"; echo "Skill: $K"
+echo "Marker: $M"; echo "Rules: $R/3"; echo "Stacks: $S/13"; echo "Skill: $K"
 '
 ```
 
@@ -230,14 +252,14 @@ Expected output:
 ```
 Marker: 1
 Rules: 3/3
-Stacks: 6/6
+Stacks: 13/13
 Skill: OK
 ```
 
 Diagnosis:
 - `Marker: 0` → managed block missing; re-run `install.sh`
 - `Marker: 2` or higher → duplicate (older install bug); re-run `install.sh` to self-heal
-- `Rules: 0/3` or `Stacks: 0/6` or `Skill: MISSING` → installer didn't finish; re-run
+- `Rules: 0/3` or `Stacks: 0/13` or `Skill: MISSING` → installer didn't finish; re-run
 
 ### One-line health check (project scope)
 
