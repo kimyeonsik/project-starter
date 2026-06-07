@@ -431,6 +431,7 @@ PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --verify     # 적용 상
 |---|---|
 | `/adopt` | 이 repo에 적용 (dry-run → 확인 → 적용) |
 | `/inspect` | read-only 스택·거버넌스 갭 점검 |
+| `/recommend` | 빈 capability에 도입할 스택 추천 (항상 리서치, AI) |
 | `/bootstrap` | 새 프로젝트 시작 (new-project-bootstrap 스킬) |
 | `/secrets` | setup-secrets로 API 키 주입 |
 

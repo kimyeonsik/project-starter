@@ -432,6 +432,7 @@ Beyond plain natural language, the skills/engines are invocable two ways:
 |---|---|
 | `/adopt` | adopt into this repo (dry-run → confirm → apply) |
 | `/inspect` | read-only stack + governance-gap inspection |
+| `/recommend` | recommend stacks for empty capabilities (always-research, AI) |
 | `/bootstrap` | start a new project (the new-project-bootstrap skill) |
 | `/secrets` | inject API keys via setup-secrets |
 

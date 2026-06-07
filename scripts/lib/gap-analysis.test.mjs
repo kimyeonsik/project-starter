@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { analyzeGaps, renderReport } from './gap-analysis.mjs';
+import { analyzeGaps, renderReport, profile, absentCapabilities } from './gap-analysis.mjs';
 
 const created = [];
 
@@ -64,4 +64,30 @@ test('renderReport: named stack shows checkmark', () => {
   const dir = mkDir({});
   const md = renderReport(analyzeGaps(dir, DETECTED), DETECTED);
   assert.match(md, /✅/);
+});
+
+test('profile: web platform from a framework, hosting unknown', () => {
+  const p = profile(DETECTED);
+  assert.equal(p.platform, 'web');
+  assert.equal(p.hosting, 'unknown');
+});
+
+test('profile: native platform when expo present', () => {
+  const p = profile([{ stack: 'expo', capability: 'framework', ruleStatus: 'generic' }]);
+  assert.equal(p.platform, 'native');
+});
+
+test('absentCapabilities: excludes present, includes empty recommendable', () => {
+  const absent = absentCapabilities(DETECTED);
+  assert.ok(!absent.includes('database'), 'database present → not a candidate');
+  assert.ok(absent.includes('analytics'), 'analytics empty → candidate');
+  assert.ok(absent.includes('payments'));
+});
+
+test('renderReport: shows profile + empty-capability candidates section', () => {
+  const dir = mkDir({});
+  const md = renderReport(analyzeGaps(dir, DETECTED), DETECTED);
+  assert.match(md, /프로필.*platform=web/);
+  assert.match(md, /빈 capability/);
+  assert.match(md, /\/recommend/);
 });
