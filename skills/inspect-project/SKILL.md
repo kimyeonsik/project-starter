@@ -11,15 +11,17 @@ description: Read-only inspection of a project's stack and governance gaps WITHO
 - "지금 상태 점검", "뭐가 빠졌나", "적용하면 뭐가 바뀌나 미리 보기"
 - 입양(adopt) 적용 전 영향 미리 확인, 또는 적용 후 설치 검증
 
+엔진은 형제 스킬 `adopt-existing-project` 에 번들돼 있다(클론 경로 불필요). 같은 skills 폴더의 그 스킬 디렉터리를 `<ADOPT_SKILL_DIR>` 이라 할 때 — `<ADOPT_SKILL_DIR>` 은 네가 `adopt-existing-project/SKILL.md` 를 읽어온 실제 절대경로로 치환한다.
+
 ## 점검 (적용 전, read-only)
 ```bash
-PROJECT_ROOT=/path/to/target node /path/to/project-starter/scripts/adopt.mjs --dry-run
+PROJECT_ROOT="<대상 repo 절대경로>" node "<ADOPT_SKILL_DIR>/engine/scripts/adopt.mjs" --dry-run
 ```
 출력: 감지된 스택(✅ named / ⚠️ generic) + 누락 거버넌스. **파일을 전혀 쓰지 않는다.**
 
 ## 검증 (적용 후)
 ```bash
-PROJECT_ROOT=/path/to/target node /path/to/project-starter/scripts/adopt.mjs --verify
+PROJECT_ROOT="<대상 repo 절대경로>" node "<ADOPT_SKILL_DIR>/engine/scripts/adopt.mjs" --verify
 ```
 예상 규칙 파일·CLAUDE.md 관리블록이 모두 있으면 통과, 없으면 누락 목록 출력. (read-only)
 

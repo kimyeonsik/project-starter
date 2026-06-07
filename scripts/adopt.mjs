@@ -68,7 +68,8 @@ export function runAdopt(repoDir, opts = {}) {
 }
 
 // ---- CLI ----
-const isMain = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(SCRIPT_DIR, 'adopt.mjs');
+const isMain = process.argv[1]
+  && fs.realpathSync(process.argv[1]) === fs.realpathSync(fileURLToPath(import.meta.url));
 if (isMain) {
   const argv = process.argv.slice(2);
   if (argv.includes('--version')) {

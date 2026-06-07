@@ -318,6 +318,24 @@ for (const entry of fs.readdirSync(skillsSrc, { withFileTypes: true })) {
   ok(`Skill installed: ${skillName}`);
 }
 
+// Bundle a self-contained adopt engine into the adopt-existing-project skill so
+// the skill can run it directly without knowing the clone path. The layout
+// mirrors the repo (engine/scripts/{adopt.mjs,lib/*} + engine/claude-rules +
+// engine/package.json) so adopt.mjs's own path resolution works unchanged.
+const adoptSkillDir = path.join(SKILLS_DIR, 'adopt-existing-project');
+if (exists(adoptSkillDir)) {
+  const engine = path.join(adoptSkillDir, 'engine');
+  fs.rmSync(engine, { recursive: true, force: true }); // clean rebuild on re-install
+  fs.mkdirSync(path.join(engine, 'scripts', 'lib'), { recursive: true });
+  copyRecursive(path.join(REPO_DIR, 'claude-rules'), path.join(engine, 'claude-rules'));
+  fs.copyFileSync(path.join(REPO_DIR, 'scripts', 'adopt.mjs'), path.join(engine, 'scripts', 'adopt.mjs'));
+  for (const f of ['stack-detect.mjs', 'gap-analysis.mjs', 'vendor.mjs', 'util.mjs', 'registry.mjs']) {
+    fs.copyFileSync(path.join(REPO_DIR, 'scripts', 'lib', f), path.join(engine, 'scripts', 'lib', f));
+  }
+  fs.copyFileSync(path.join(REPO_DIR, 'package.json'), path.join(engine, 'package.json'));
+  ok('Bundled self-contained adopt engine into adopt-existing-project skill');
+}
+
 // ---------- Harden: block agents from reading secret files ----------
 // setup-secrets keeps API keys out of the AI conversation — but that only holds
 // if the agent never reads the secret file afterwards. Advisory text in a skill
@@ -407,6 +425,7 @@ const manifestLines = [
   'version=1',
   `project_starter_version=${VERSION}`,
   `scope=${scope}`,
+  `lang=${lang}`,
   `installed_at=${isoUtc()}`,
   `claude_md_existed_before=${preExistingClaudeMd}`,
   `claude_md_path=${CLAUDE_MD}`,

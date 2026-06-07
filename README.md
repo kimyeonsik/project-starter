@@ -21,12 +21,12 @@ project-starter serves two entry points. Pick the one that matches your situatio
 | You have... | Path | What happens |
 |---|---|---|
 | an **empty directory** (from scratch) | **New project — bootstrap** | the `new-project-bootstrap` skill scaffolds Next.js 15 + infra in 11 deterministic steps |
-| a **repo that already has code** | **Existing project — adopt** | `adopt.mjs` detects the in-use stack and vendors only the matching rules — **it never touches your source** |
+| a **repo that already has code** | **Existing project — adopt** | the `adopt-existing-project` skill detects the in-use stack and vendors only the matching rules — **it never touches your source** |
 
 Both paths first install project-starter's rules and skills (see **Install**). Then:
 
 - **New** → start a Claude session in the empty dir and trigger the bootstrap (see *New project — bootstrap*).
-- **Existing** → run the adopt flow on your repo (see *Existing project — adopt*).
+- **Existing** → in the repo, ask Claude to adopt project-starter (the *adopt-existing-project* skill).
 
 ## Prerequisites
 
@@ -396,24 +396,30 @@ Add or remove stack imports based on what the project actually uses.
 
 ## Existing project — adopt
 
-For a repo that already has code, use the adopt flow instead of bootstrap — it
-detects the in-use stack, vendors only the matching rules into `./.claude/rules/`,
-synthesizes a `CLAUDE.md` managed block, and writes a non-destructive
-`./.claude/adopt-report.md`. It never modifies your source code.
+For a repo that already has code, **just ask Claude** — same shape as the
+new-project flow, nothing to type. After installing project-starter, open a
+Claude session in the repo and say:
 
-```bash
-PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --lang en
-```
+> "Adopt project-starter into this repo."
+
+The `adopt-existing-project` skill runs a **self-contained engine bundled with
+it** (no clone path needed): it detects the in-use stack, vendors only the
+matching rules into `./.claude/rules/`, synthesizes the `CLAUDE.md` managed
+block, and writes a non-destructive `./.claude/adopt-report.md`. **It never
+modifies your source code.** To preview only, say "inspect this project" (the
+read-only `inspect-project` skill).
 
 Unsupported-but-in-use stacks fall back to capability-generic rules and are
 flagged in the report for optional dedicated-rule authoring later.
 
-Preview without changing anything (`--dry-run`), or verify an applied install
-(`--verify`):
+### Scripted / CI (advanced)
+
+The skill just calls an engine you can also run directly — handy for automation:
 
 ```bash
-PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --dry-run
-PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --verify
+PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --lang en   # apply
+PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --dry-run    # preview (read-only)
+PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --verify     # check an applied install
 ```
 
 ## Secrets Setup (API keys / tokens)
