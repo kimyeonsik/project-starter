@@ -4,15 +4,39 @@
 
 [English](README.md) | **한국어**
 
-개인용 Claude Code 개발 인프라: 글로벌 규칙, 스택 옵트인, 그리고 결정론적 Next.js 부트스트랩 스킬.
+개인용 Claude Code 개발 인프라: 글로벌 규칙, 스택 옵트인 규칙, 그리고 두 진입점을 위한 스킬 — **새 프로젝트를 처음부터 부트스트랩**하거나, 기존 repo에 규칙을 **비파괴적으로 입양(adopt)**합니다.
 
-여러 머신에서 일관된 개발 환경을 명령 한 줄로 복제하도록 설계되었습니다.
+여러 머신에서 일관된 개발 환경을 명령 한 줄로 복제하도록 설계되었습니다. 처음이세요? 아래 **어느 경로? — 신규 vs 기존** 섹션부터 보세요.
 
 ## 설치되는 것
 
 - **글로벌 규칙** (`~/.claude/rules/`): 언어 정책, Agent Teams 워크플로우, 스킬 자동 활성화 매트릭스, git 워크플로우(브랜칭/커밋/PR), ADR 규율, 보안 베이스라인
 - **스택 옵트인 규칙** (`~/.claude/rules/stacks/`): Next.js, Supabase, Vercel, Cloudflare, Playwright, Vitest, Claude API, Sentry, Amplitude, Tailwind + shadcn/ui, Resend, GitHub Actions
 - **부트스트랩 스킬** (`~/.agents/skills/new-project-bootstrap/`): Next.js 15 + TypeScript + pnpm + Supabase + Sentry + Amplitude + Vitest + Playwright + GitHub Actions CI를 프롬프트 한 번으로 셋업
+
+## 어느 경로? — 신규 프로젝트 vs 기존 프로젝트
+
+project-starter는 두 가지 진입점을 제공합니다. 상황에 맞는 쪽을 고르세요:
+
+| 가진 것 | 경로 | 무슨 일이 일어나나 |
+|---|---|---|
+| **빈 디렉터리** (처음부터 시작) | **신규 프로젝트 — 부트스트랩** | `new-project-bootstrap` 스킬이 Next.js 15 + 인프라를 11단계로 결정론적으로 스캐폴딩 |
+| **이미 코드가 있는 repo** | **기존 프로젝트 — 입양(adopt)** | `adopt.mjs`가 사용 중인 스택을 감지해 맞는 규칙만 vendoring — **소스는 절대 건드리지 않음** |
+
+두 경로 모두 먼저 project-starter의 규칙·스킬을 설치합니다(아래 **설치** 참고). 그 다음:
+
+- **신규** → 빈 디렉터리에서 Claude 세션을 시작해 부트스트랩을 트리거 (*신규 프로젝트 — 부트스트랩* 참고).
+- **기존** → repo에서 입양 플로우 실행 (*기존 프로젝트 — 입양* 참고).
+
+## 사전 요구사항
+
+- Node 20+
+- pnpm (`corepack enable && corepack prepare pnpm@latest --activate`)
+- git
+- (선택, 권장) 부트스트랩 스킬의 GitHub 레포 생성용 `gh`
+- Claude Code CLI ([설치](https://claude.com/claude-code))
+
+설치 안내는 `docs/prereq.md` 참고.
 
 ## 설치
 
@@ -280,6 +304,117 @@ Claude 세션에서:
 rm -rf /tmp/ps-verify
 ```
 
+## 신규 프로젝트 — 부트스트랩
+
+빈 디렉토리에서 Claude 세션을 시작하고 부트스트랩을 트리거합니다:
+
+```bash
+mkdir ~/projects/my-app && cd ~/projects/my-app
+claude
+```
+
+세션에서:
+```
+새 프로젝트를 시작하고 싶어 — ...를 위한 모바일 웹 앱
+```
+
+`new-project-bootstrap` 스킬은 `brainstorming`이 스코프를 확정한 후 활성화됩니다. 11개의 결정론적 단계를 실행하고 lint + 테스트 + 빌드 + E2E로 검증합니다.
+
+자동 활성화가 안 되면 강제 트리거:
+```
+new-project-bootstrap 스킬을 실행해줘.
+```
+
+## 신규 프로젝트: 기존 자료로 시작하기 (PRD, 더미 사이트, 디자인 참고)
+
+이미 PRD, 동작하는 더미 사이트, Figma 파일, 기타 참고 자료가 있다면 부트스트랩이 흡수할 수 있습니다. 미리 정리할 필요 없이 — 부트스트랩 인터뷰 중 경로를 붙여넣으면 Claude가 `_inputs/`에 분류해 줍니다.
+
+### 동작 방식
+
+`new-project-bootstrap`의 Step 0.5에서 Claude가 묻습니다:
+
+```
+기존에 가지고 있는 자료가 있나요? 경로를 알려주시면 _inputs/에 정리합니다.
+
+  PRD/스펙:             <경로>
+  더미 사이트/프로토타입:  <경로 또는 URL>
+  디자인/와이어프레임:    <경로>
+  Figma:               <URL>
+  리서치/경쟁사:        <경로>
+  사용자 인터뷰:        <경로>
+  데이터 샘플:          <경로>
+
+또는 'none':
+```
+
+가진 항목을 붙여넣으면 Claude가 키워드로 분류해 알맞은 슬롯에 복사(큰 파일은 심볼릭 링크)합니다.
+
+### 자동 분류 맵
+
+| 사용자 표현 | 분류 위치 |
+|---|---|
+| `prd` / `spec` / `requirements` / 기획서 | `_inputs/prd/` |
+| `dummy site` / `prototype` / 더미 / 시안 | `_inputs/dummy-site/` |
+| `design` / `wireframe` / `screenshot` | `_inputs/design/` |
+| `figma.com/...` URL | `_inputs/figma/` (+ Figma MCP가 메타데이터 수집) |
+| 기타 `http(s)://...` URL | `_inputs/live-refs/` (+ Playwright이 스크린샷 캡처) |
+| `research` / `competitor` / 경쟁사 | `_inputs/research/` |
+| `user interview` / `survey` | `_inputs/user-research/` |
+| `data` / 샘플 CSV/JSON | `_inputs/data/` |
+
+### 더미 사이트는 추가 처리
+
+더미 사이트가 `_inputs/dummy-site/`에 들어오면 Claude가 추가로:
+- Playwright로 페이지별 스크린샷 캡처 → `_inputs/dummy-site/screenshots/`
+- HTML 구조 힌트 추출 → `_inputs/dummy-site/structure.md`
+- CSS 변수 / 색상 토큰 추출 → `_inputs/dummy-site/tokens-draft.md`
+
+이들은 Stage 3(Design)으로 흘러가 `frontend-design`이 동일한 톤으로 새 UI를 만들도록 돕습니다.
+
+### 미리 정리된 입력도 동작
+
+부트스트랩 시작 전에 `./_inputs/` 아래에 이미 정리해 뒀다면 자동 감지됩니다 — 다시 붙여넣을 필요 없음.
+
+### 부트스트랩 이후
+
+기본적으로 `_inputs/`는 `.gitignore`에 추가됩니다(참고용, 배포 제외). 자료가 스펙의 일부라면 커밋하도록 선택할 수 있습니다.
+
+## 프로젝트별 CLAUDE.md (옵트인 스택)
+
+부트스트랩 스킬은 다음과 같은 프로젝트 `CLAUDE.md`를 자동 생성합니다:
+
+```markdown
+# my-app Rules
+
+@~/.claude/rules/stacks/nextjs.md
+@~/.claude/rules/stacks/supabase.md
+@~/.claude/rules/stacks/vercel.md
+@~/.claude/rules/stacks/playwright.md
+```
+
+프로젝트가 실제로 쓰는 것에 맞춰 스택 import를 추가/제거하세요.
+
+## 기존 프로젝트 — 입양(adopt)
+
+이미 코드가 있는 repo라면 부트스트랩 대신 입양 플로우를 씁니다 — 사용 중인 스택을
+감지해 맞는 규칙만 `./.claude/rules/`로 vendoring하고, `CLAUDE.md` managed 블록을
+합성하며, 비파괴 리포트 `./.claude/adopt-report.md`를 작성합니다. 소스 코드는 절대
+수정하지 않습니다.
+
+```bash
+PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --lang ko
+```
+
+전용 규칙이 없는(쓰고 있지만 미지원) 스택은 capability generic 규칙으로 폴백되며,
+나중에 전용 규칙을 추가할 후보로 리포트에 표시됩니다.
+
+아무것도 바꾸지 않고 미리보기(`--dry-run`)하거나, 적용된 설치를 검증(`--verify`):
+
+```bash
+PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --dry-run
+PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --verify
+```
+
 ## 시크릿 설정 (API 키 / 토큰)
 
 `setup-secrets` 스킬(`skills/setup-secrets/setup-secrets.mjs`)로 `.env.local`에 키를 대화형으로 주입합니다. 크로스플랫폼 Node이며, `setup-secrets.sh`는 bash 셸용 얇은 셰임입니다. 별도 스크립트로 둔 이유:
@@ -395,6 +530,58 @@ $f="$env:TEMP\setup-secrets.mjs"; irm https://raw.githubusercontent.com/kimyeons
 - 3회 잘못 입력하면 해당 키는 건너뜀(부분 저장 안 됨)
 - 표시값은 마스킹(`abcd••••wxyz`) — 전체 시크릿은 화면에 절대 안 나옴
 - 위 **validate** 항목을 언제든 실행해 `.env.local`을 재검증 (각 변수의 OK / 형식 이상 출력)
+
+## MCP 서버 (선택, 권장)
+
+일부 스킬은 MCP 서버(Supabase, Vercel)가 연결돼 있을 때 가장 잘 동작합니다. `docs/mcp-setup.md` 참고.
+
+## 레포 구조
+
+```
+project-starter/
+├── CLAUDE.md.template           # ~/.claude/CLAUDE.md에 추가되는 관리 블록
+├── claude-rules/
+│   ├── en/                      # 영어 언어 규칙 세트
+│   ├── ko/                      # 한국어 언어 규칙 세트
+│   └── stacks/                  # 공통(영어) 스택 규칙
+├── skills/
+│   ├── new-project-bootstrap/   # 부트스트랩 스킬 (SKILL.md)
+│   └── setup-secrets/           # setup-secrets.mjs (엔진) + .sh 셰임
+├── scripts/
+│   ├── lib/util.mjs             # 공유 크로스플랫폼 헬퍼
+│   ├── install.mjs              # 설치기 엔진 (macOS / Linux / Windows)
+│   ├── uninstall.mjs            # 제거기 엔진
+│   ├── bootstrap.sh             # 원격 진입 — bash / WSL / Git Bash
+│   ├── bootstrap.ps1            # 원격 진입 — Windows / PowerShell
+│   ├── install.sh               # 얇은 bash 셰임 → install.mjs
+│   ├── uninstall.sh             # 얇은 bash 셰임 → uninstall.mjs
+│   └── verify.mjs               # 크로스플랫폼 생명주기 검증 하네스
+└── docs/
+    ├── prereq.md
+    ├── mcp-setup.md
+    └── customization.md
+```
+
+## 커스터마이징
+
+`claude-rules/`의 규칙을 수정한 뒤 `bash scripts/install.sh`(또는 원라이너)를 재실행해 적용합니다. 설치기는 덮어쓰기 전 이전 버전을 백업합니다.
+
+재설치 덮어쓰기 없이 영구 로컬 편집을 하려면 `~/.claude/rules/*`를 직접 수정하세요 — 단 다음 설치 때 사라집니다. 이 레포를 진실의 원천(source of truth)으로 쓰세요.
+
+`docs/customization.md` 참고.
+
+## 트러블슈팅
+
+| 증상 | 조치 |
+|---|---|
+| `install.sh: Permission denied` | `chmod +x scripts/install.sh scripts/uninstall.sh scripts/bootstrap.sh` (macOS/Linux) |
+| Windows: `bash` 인식 안 됨 | [PowerShell 원라이너](#windows-powershell) 사용, 또는 `node scripts/install.mjs` 직접 실행 |
+| Windows: `running scripts is disabled` (PowerShell) | 일회성: `powershell -ExecutionPolicy Bypass -File scripts\bootstrap.ps1`, 또는 `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` |
+| `Node 20+` 경고 | `brew install node@20` (또는 nvm 사용) |
+| 부트스트랩 스킬 자동 활성화 안 됨 | 설치 후 새 Claude 세션 시작; `ls ~/.agents/skills/new-project-bootstrap/SKILL.md` 확인 |
+| `gh: command not found` | `brew install gh && gh auth login` (레포 생성에만 필요, 이 프로젝트 클론엔 불필요) |
+| 부트스트랩 도중 실패 | `git status`로 부분 상태 확인; 실패 단계부터 재실행 (단계는 멱등) |
+| 새 프로젝트 전체 롤백 | `cd .. && rm -rf <project-name> && mkdir <project-name>` |
 
 ## 제거
 
@@ -526,158 +713,6 @@ Select-String "BEGIN project-starter" .\CLAUDE.md -ErrorAction SilentlyContinue
 - 모든 `*.backup-<timestamp>` 파일 (안전망으로 디스크에 유지 — `PURGE_BACKUPS=1`로 삭제)
 - 설치기가 만들지 않은 설치 디렉토리 내 모든 것 (커스텀 파일, 관리 블록 밖의 편집)
 - 셸 설정, MCP 서버 설정, 기타 Claude Code 설정
-
-## 사전 요구사항
-
-- Node 20+
-- pnpm (`corepack enable && corepack prepare pnpm@latest --activate`)
-- git
-- (선택, 권장) 부트스트랩 스킬의 GitHub 레포 생성용 `gh`
-- Claude Code CLI ([설치](https://claude.com/claude-code))
-
-설치 안내는 `docs/prereq.md` 참고.
-
-## 기존 자료로 시작하기 (PRD, 더미 사이트, 디자인 참고)
-
-이미 PRD, 동작하는 더미 사이트, Figma 파일, 기타 참고 자료가 있다면 부트스트랩이 흡수할 수 있습니다. 미리 정리할 필요 없이 — 부트스트랩 인터뷰 중 경로를 붙여넣으면 Claude가 `_inputs/`에 분류해 줍니다.
-
-### 동작 방식
-
-`new-project-bootstrap`의 Step 0.5에서 Claude가 묻습니다:
-
-```
-기존에 가지고 있는 자료가 있나요? 경로를 알려주시면 _inputs/에 정리합니다.
-
-  PRD/스펙:             <경로>
-  더미 사이트/프로토타입:  <경로 또는 URL>
-  디자인/와이어프레임:    <경로>
-  Figma:               <URL>
-  리서치/경쟁사:        <경로>
-  사용자 인터뷰:        <경로>
-  데이터 샘플:          <경로>
-
-또는 'none':
-```
-
-가진 항목을 붙여넣으면 Claude가 키워드로 분류해 알맞은 슬롯에 복사(큰 파일은 심볼릭 링크)합니다.
-
-### 자동 분류 맵
-
-| 사용자 표현 | 분류 위치 |
-|---|---|
-| `prd` / `spec` / `requirements` / 기획서 | `_inputs/prd/` |
-| `dummy site` / `prototype` / 더미 / 시안 | `_inputs/dummy-site/` |
-| `design` / `wireframe` / `screenshot` | `_inputs/design/` |
-| `figma.com/...` URL | `_inputs/figma/` (+ Figma MCP가 메타데이터 수집) |
-| 기타 `http(s)://...` URL | `_inputs/live-refs/` (+ Playwright이 스크린샷 캡처) |
-| `research` / `competitor` / 경쟁사 | `_inputs/research/` |
-| `user interview` / `survey` | `_inputs/user-research/` |
-| `data` / 샘플 CSV/JSON | `_inputs/data/` |
-
-### 더미 사이트는 추가 처리
-
-더미 사이트가 `_inputs/dummy-site/`에 들어오면 Claude가 추가로:
-- Playwright로 페이지별 스크린샷 캡처 → `_inputs/dummy-site/screenshots/`
-- HTML 구조 힌트 추출 → `_inputs/dummy-site/structure.md`
-- CSS 변수 / 색상 토큰 추출 → `_inputs/dummy-site/tokens-draft.md`
-
-이들은 Stage 3(Design)으로 흘러가 `frontend-design`이 동일한 톤으로 새 UI를 만들도록 돕습니다.
-
-### 미리 정리된 입력도 동작
-
-부트스트랩 시작 전에 `./_inputs/` 아래에 이미 정리해 뒀다면 자동 감지됩니다 — 다시 붙여넣을 필요 없음.
-
-### 부트스트랩 이후
-
-기본적으로 `_inputs/`는 `.gitignore`에 추가됩니다(참고용, 배포 제외). 자료가 스펙의 일부라면 커밋하도록 선택할 수 있습니다.
-
-## 설치 후 사용법
-
-빈 디렉토리에서 Claude 세션을 시작하고 부트스트랩을 트리거합니다:
-
-```bash
-mkdir ~/projects/my-app && cd ~/projects/my-app
-claude
-```
-
-세션에서:
-```
-새 프로젝트를 시작하고 싶어 — ...를 위한 모바일 웹 앱
-```
-
-`new-project-bootstrap` 스킬은 `brainstorming`이 스코프를 확정한 후 활성화됩니다. 11개의 결정론적 단계를 실행하고 lint + 테스트 + 빌드 + E2E로 검증합니다.
-
-자동 활성화가 안 되면 강제 트리거:
-```
-new-project-bootstrap 스킬을 실행해줘.
-```
-
-## 프로젝트별 CLAUDE.md (옵트인 스택)
-
-부트스트랩 스킬은 다음과 같은 프로젝트 `CLAUDE.md`를 자동 생성합니다:
-
-```markdown
-# my-app Rules
-
-@~/.claude/rules/stacks/nextjs.md
-@~/.claude/rules/stacks/supabase.md
-@~/.claude/rules/stacks/vercel.md
-@~/.claude/rules/stacks/playwright.md
-```
-
-프로젝트가 실제로 쓰는 것에 맞춰 스택 import를 추가/제거하세요.
-
-## MCP 서버 (선택, 권장)
-
-일부 스킬은 MCP 서버(Supabase, Vercel)가 연결돼 있을 때 가장 잘 동작합니다. `docs/mcp-setup.md` 참고.
-
-## 레포 구조
-
-```
-project-starter/
-├── CLAUDE.md.template           # ~/.claude/CLAUDE.md에 추가되는 관리 블록
-├── claude-rules/
-│   ├── en/                      # 영어 언어 규칙 세트
-│   ├── ko/                      # 한국어 언어 규칙 세트
-│   └── stacks/                  # 공통(영어) 스택 규칙
-├── skills/
-│   ├── new-project-bootstrap/   # 부트스트랩 스킬 (SKILL.md)
-│   └── setup-secrets/           # setup-secrets.mjs (엔진) + .sh 셰임
-├── scripts/
-│   ├── lib/util.mjs             # 공유 크로스플랫폼 헬퍼
-│   ├── install.mjs              # 설치기 엔진 (macOS / Linux / Windows)
-│   ├── uninstall.mjs            # 제거기 엔진
-│   ├── bootstrap.sh             # 원격 진입 — bash / WSL / Git Bash
-│   ├── bootstrap.ps1            # 원격 진입 — Windows / PowerShell
-│   ├── install.sh               # 얇은 bash 셰임 → install.mjs
-│   ├── uninstall.sh             # 얇은 bash 셰임 → uninstall.mjs
-│   └── verify.mjs               # 크로스플랫폼 생명주기 검증 하네스
-└── docs/
-    ├── prereq.md
-    ├── mcp-setup.md
-    └── customization.md
-```
-
-## 커스터마이징
-
-`claude-rules/`의 규칙을 수정한 뒤 `bash scripts/install.sh`(또는 원라이너)를 재실행해 적용합니다. 설치기는 덮어쓰기 전 이전 버전을 백업합니다.
-
-재설치 덮어쓰기 없이 영구 로컬 편집을 하려면 `~/.claude/rules/*`를 직접 수정하세요 — 단 다음 설치 때 사라집니다. 이 레포를 진실의 원천(source of truth)으로 쓰세요.
-
-`docs/customization.md` 참고.
-
-## 트러블슈팅
-
-| 증상 | 조치 |
-|---|---|
-| `install.sh: Permission denied` | `chmod +x scripts/install.sh scripts/uninstall.sh scripts/bootstrap.sh` (macOS/Linux) |
-| Windows: `bash` 인식 안 됨 | [PowerShell 원라이너](#windows-powershell) 사용, 또는 `node scripts/install.mjs` 직접 실행 |
-| Windows: `running scripts is disabled` (PowerShell) | 일회성: `powershell -ExecutionPolicy Bypass -File scripts\bootstrap.ps1`, 또는 `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` |
-| `Node 20+` 경고 | `brew install node@20` (또는 nvm 사용) |
-| 부트스트랩 스킬 자동 활성화 안 됨 | 설치 후 새 Claude 세션 시작; `ls ~/.agents/skills/new-project-bootstrap/SKILL.md` 확인 |
-| `gh: command not found` | `brew install gh && gh auth login` (레포 생성에만 필요, 이 프로젝트 클론엔 불필요) |
-| 부트스트랩 도중 실패 | `git status`로 부분 상태 확인; 실패 단계부터 재실행 (단계는 멱등) |
-| 새 프로젝트 전체 롤백 | `cd .. && rm -rf <project-name> && mkdir <project-name>` |
 
 ## 기여
 
