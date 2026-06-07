@@ -417,7 +417,7 @@ PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --verify
 
 ## 시크릿 설정 (API 키 / 토큰)
 
-`setup-secrets` 스킬(`skills/setup-secrets/setup-secrets.mjs`)로 `.env.local`에 키를 대화형으로 주입합니다. 크로스플랫폼 Node이며, `setup-secrets.sh`는 bash 셸용 얇은 래퍼(shim)입니다. 별도 스크립트로 둔 이유:
+`setup-secrets` 스킬(`skills/setup-secrets/setup-secrets.mjs`)로 `.env.local`에 키를 대화형으로 주입합니다. 크로스플랫폼 Node이며, `setup-secrets.sh`는 bash 셸용 얇은 wrapper 스크립트입니다. 별도 스크립트로 둔 이유:
 
 - 시크릿이 AI 채팅에 절대 붙여넣어지지 않음 (로그/대화 기록 유출 방지)
 - **에이전트도 파일을 읽지 못함:** 설치기가 `settings.json`에 `permissions.deny` 규칙을 추가해 Claude의 Read/Bash 도구가 `.env*`·개인키를 열 수 없게 함. 붙여넣은 키든 에이전트가 읽은 키든 둘 다 모델 컨텍스트에 들어가는 유출이므로, 권고가 아니라 **읽기 자체를 하드 차단합니다**. 실제 값은 런타임(`pnpm dev`, CLI)이 소비하고 코드에선 `process.env.X`로만 참조 — 에이전트는 값을 볼 일이 없습니다.
@@ -546,15 +546,15 @@ project-starter/
 │   └── stacks/                  # 공통(영어) 스택 규칙
 ├── skills/
 │   ├── new-project-bootstrap/   # 부트스트랩 스킬 (SKILL.md)
-│   └── setup-secrets/           # setup-secrets.mjs (엔진) + .sh shim
+│   └── setup-secrets/           # setup-secrets.mjs (엔진) + .sh wrapper
 ├── scripts/
 │   ├── lib/util.mjs             # 공유 크로스플랫폼 헬퍼
 │   ├── install.mjs              # 설치기 엔진 (macOS / Linux / Windows)
 │   ├── uninstall.mjs            # 제거기 엔진
 │   ├── bootstrap.sh             # 원격 진입 — bash / WSL / Git Bash
 │   ├── bootstrap.ps1            # 원격 진입 — Windows / PowerShell
-│   ├── install.sh               # 얇은 bash shim → install.mjs
-│   ├── uninstall.sh             # 얇은 bash shim → uninstall.mjs
+│   ├── install.sh               # 얇은 bash wrapper → install.mjs
+│   ├── uninstall.sh             # 얇은 bash wrapper → uninstall.mjs
 │   └── verify.mjs               # 크로스플랫폼 생명주기 검증 하네스
 └── docs/
     ├── prereq.md
