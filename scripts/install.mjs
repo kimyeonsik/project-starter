@@ -325,6 +325,21 @@ if (bundleAdoptEngine(SKILLS_DIR, REPO_DIR)) {
   ok('Bundled self-contained adopt engine into adopt-existing-project skill');
 }
 
+// ---------- Install slash commands (Claude Code /commands) ----------
+const COMMANDS_DIR = path.join(CLAUDE_DIR, 'commands');
+const installedCommandFiles = [];
+const commandsSrc = path.join(REPO_DIR, 'commands');
+if (exists(commandsSrc)) {
+  fs.mkdirSync(COMMANDS_DIR, { recursive: true });
+  for (const f of fs.readdirSync(commandsSrc).filter((x) => x.endsWith('.md'))) {
+    const dest = path.join(COMMANDS_DIR, f);
+    backupIfExists(dest, TS);
+    fs.copyFileSync(path.join(commandsSrc, f), dest);
+    installedCommandFiles.push(dest);
+  }
+  ok(`Installed ${installedCommandFiles.length} slash command(s) to ${COMMANDS_DIR}`);
+}
+
 // ---------- Harden: block agents from reading secret files ----------
 // setup-secrets keeps API keys out of the AI conversation — but that only holds
 // if the agent never reads the secret file afterwards. Advisory text in a skill
@@ -426,6 +441,9 @@ for (const f of CORE_RULES) {
 }
 for (const fname of stackFiles) {
   manifestLines.push(`file:${path.join(RULES_DIR, 'stacks', fname)}`);
+}
+for (const f of installedCommandFiles) {
+  manifestLines.push(`file:${f}`);
 }
 for (const d of installedSkillDirs) {
   manifestLines.push(`dir:${d}`);

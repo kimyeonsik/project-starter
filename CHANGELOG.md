@@ -6,6 +6,19 @@ adheres to [Semantic Versioning](https://semver.org/). The canonical version
 lives in `package.json` (exported as `VERSION` from `scripts/lib/registry.mjs`);
 `consistency.test.mjs` asserts the latest entry below matches it.
 
+## [0.5.0] - 2026-06-08
+
+### Added
+- **Slash commands** (`commands/*.md` → `<scope>/.claude/commands/`): `/adopt`
+  (dry-run → confirm → apply), `/inspect` (read-only), `/bootstrap`, `/secrets` —
+  explicit, discoverable invocation of the skills inside Claude Code. `install.mjs`
+  installs them (manifest-tracked for uninstall); `update.mjs` refreshes them.
+- **Unified shell CLI** (`scripts/cli.mjs`, exposed as the `project-starter` bin):
+  `install | update | adopt | inspect | verify | secrets | version | help`. Routes
+  to the existing engines — pure Node, no AI tokens or Claude subscription needed
+  (new-project bootstrap is skill-only and intentionally absent). `npm link` to get
+  a global `project-starter` command.
+
 ## [0.4.0] - 2026-06-07
 
 ### Added

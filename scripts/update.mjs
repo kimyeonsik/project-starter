@@ -75,6 +75,7 @@ export function resolveInstall(opts = {}) {
     lang: opts.lang || env.LANG_CHOICE || manifestGet(text, 'lang') || 'en',
     rulesDir: manifestGet(text, 'rules_dir') || path.join(claudeDir, 'rules'),
     skillsDir: manifestGet(text, 'skills_dir'),
+    commandsDir: path.join(claudeDir, 'commands'),
     claudeMd: manifestGet(text, 'claude_md_path') || path.join(claudeDir, '..', 'CLAUDE.md'),
     projectScope: scope === 'project',
   };
@@ -83,7 +84,7 @@ export function resolveInstall(opts = {}) {
 // 실제 갱신. 테스트는 명시 경로(inst)로 호출.
 export function runUpdate(inst, opts = {}) {
   const repoDir = opts.repoDir || REPO_DIR;
-  const { rulesDir, skillsDir, claudeMd, manifestPath, lang, projectScope } = inst;
+  const { rulesDir, skillsDir, commandsDir, claudeMd, manifestPath, lang, projectScope } = inst;
   let changed = 0;
 
   // 규칙: 코어(언어별) + 모든 stacks
@@ -104,6 +105,17 @@ export function runUpdate(inst, opts = {}) {
       if (e.isDirectory()) copyRecursive(path.join(skillsSrc, e.name), path.join(skillsDir, e.name));
     }
     bundleAdoptEngine(skillsDir, repoDir);
+  }
+
+  // 슬래시 명령 새로고침 (content-aware)
+  if (commandsDir) {
+    const commandsSrc = path.join(repoDir, 'commands');
+    if (exists(commandsSrc)) {
+      fs.mkdirSync(commandsDir, { recursive: true });
+      for (const f of fs.readdirSync(commandsSrc).filter((x) => x.endsWith('.md'))) {
+        if (copyIfChanged(path.join(commandsSrc, f), path.join(commandsDir, f))) changed++;
+      }
+    }
   }
 
   // CLAUDE.md 관리 블록 갱신 (content-aware, 사용자 내용 보존)
