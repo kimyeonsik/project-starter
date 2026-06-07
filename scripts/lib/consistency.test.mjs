@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CORE_RULES, CAPABILITIES, ALL_SKILLS } from './registry.mjs';
+import { CORE_RULES, CAPABILITIES, ALL_SKILLS, VERSION } from './registry.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
@@ -57,4 +57,14 @@ test('skill IDs in docs use the registry owner/repo (no drift)', () => {
       }
     }
   }
+});
+
+test('registry VERSION === package.json version', () => {
+  assert.equal(VERSION, JSON.parse(read('package.json')).version);
+});
+
+test('CHANGELOG.md latest version === package.json version', () => {
+  const m = read('CHANGELOG.md').match(/^## \[(\d+\.\d+\.\d+)\]/m);
+  assert.ok(m, 'no version heading in CHANGELOG.md');
+  assert.equal(m[1], VERSION);
 });

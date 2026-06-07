@@ -35,12 +35,19 @@ import {
   IS_WIN,
 } from './lib/util.mjs';
 import {
-  CORE_RULES, ESSENTIAL_SKILLS, WEB_SKILLS, SUPABASE_SKILLS,
+  CORE_RULES, ESSENTIAL_SKILLS, WEB_SKILLS, SUPABASE_SKILLS, VERSION,
 } from './lib/registry.mjs';
 
 const REPO_DIR = path.resolve(dirOf(import.meta.url), '..');
 const TS = timestamp();
 const env = process.env;
+
+// --version: print and exit before doing anything else.
+if (process.argv.includes('--version')) {
+  console.log(VERSION);
+  process.exit(0);
+}
+info(`project-starter v${VERSION}`);
 
 // CORE_RULES (always-on core rules) is the SSOT in ./lib/registry.mjs.
 
@@ -398,6 +405,7 @@ info('Writing manifest...');
 const manifestLines = [
   '# project-starter install manifest (do not edit by hand)',
   'version=1',
+  `project_starter_version=${VERSION}`,
   `scope=${scope}`,
   `installed_at=${isoUtc()}`,
   `claude_md_existed_before=${preExistingClaudeMd}`,
