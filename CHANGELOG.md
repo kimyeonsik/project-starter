@@ -6,6 +6,21 @@ adheres to [Semantic Versioning](https://semver.org/). The canonical version
 lives in `package.json` (exported as `VERSION` from `scripts/lib/registry.mjs`);
 `consistency.test.mjs` asserts the latest entry below matches it.
 
+## [0.4.0] - 2026-06-07
+
+### Added
+- **`update` command** (`scripts/update.mjs` + `update.sh`): refresh an existing
+  install to the current checkout — content-aware (no backup churn), manifest-driven
+  (no prompts). Reports `installed vX → current vY` with the CHANGELOG delta,
+  refreshes rules + project-starter skills + the bundled adopt engine + the
+  `CLAUDE.md` managed block, and bumps the manifest version. `--skills` also runs
+  `npx skills update`.
+- `scripts/lib/bundle-engine.mjs`: shared adopt-engine bundling used by both
+  `install.mjs` and `update.mjs` (single source for the bundle's file list).
+
+### Changed
+- `install.mjs` now bundles the adopt engine via the shared `bundle-engine.mjs` helper.
+
 ## [0.3.0] - 2026-06-07
 
 ### Added
