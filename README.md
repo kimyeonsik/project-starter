@@ -422,6 +422,28 @@ PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --dry-run    # preview (r
 PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --verify     # check an applied install
 ```
 
+## Commands
+
+Beyond plain natural language, the skills/engines are invocable two ways:
+
+**Inside Claude Code — slash commands** (installed to `<scope>/.claude/commands/`):
+
+| Command | Does |
+|---|---|
+| `/adopt` | adopt into this repo (dry-run → confirm → apply) |
+| `/inspect` | read-only stack + governance-gap inspection |
+| `/bootstrap` | start a new project (the new-project-bootstrap skill) |
+| `/secrets` | inject API keys via setup-secrets |
+
+**In a terminal — the `project-starter` CLI** (after `npm link` in the clone, or `node scripts/cli.mjs`):
+
+```bash
+project-starter adopt --dry-run      # run from the target repo (or set PROJECT_ROOT)
+project-starter inspect | verify | update | install | secrets | version | help
+```
+
+The CLI is plain Node — **no AI tokens or Claude subscription** — so it's handy for CI/automation. New-project bootstrap is AI-driven, so it has a `/bootstrap` slash command but no terminal command.
+
 ## Secrets Setup (API keys / tokens)
 
 Use the `setup-secrets` skill (`skills/setup-secrets/setup-secrets.mjs`) to inject keys into `.env.local` interactively. It's cross-platform Node; `setup-secrets.sh` is a thin shim for bash shells. Why a separate script:
