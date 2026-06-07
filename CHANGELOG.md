@@ -6,6 +6,20 @@ adheres to [Semantic Versioning](https://semver.org/). The canonical version
 lives in `package.json` (exported as `VERSION` from `scripts/lib/registry.mjs`);
 `consistency.test.mjs` asserts the latest entry below matches it.
 
+## [0.6.0] - 2026-06-08
+
+### Added
+- **Stack recommender** — `recommend-stack` skill + `/recommend` slash command.
+  For a project's EMPTY capabilities (analytics / auth / payments / …), it
+  recommends what to **add**, weighted by the project profile (web/native/edge,
+  hosting) + region/budget, **always researching current options** (reputation,
+  pricing) before suggesting. Only recommends for *absent* capabilities — never
+  proposes replacing what is already in use.
+- **Deterministic recommender inputs** (token-free) surfaced in `inspect` /
+  `adopt --dry-run`: the report now shows the project **profile** (platform,
+  hosting) and the **empty capabilities** that are recommendation candidates.
+  Added `expo` / `react-native` detection (→ platform=native).
+
 ## [0.5.0] - 2026-06-08
 
 ### Added
