@@ -4,6 +4,14 @@
 // 마크다운·파일 사본(README, CLAUDE.md.template, capabilities/*.md 등)은
 // consistency.test.mjs 가 이 목록과 일치하는지 CI에서 검증한다.
 
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// package.json 의 version 을 단일 원천으로 노출 (모든 곳이 여기서 import).
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+export const VERSION = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
+
 // 항상 설치/vendoring 되는 코어 규칙 (claude-rules/<lang>/ 에 존재).
 export const CORE_RULES = [
   'language.md', 'agent-teams.md', 'skill-activation.md',
