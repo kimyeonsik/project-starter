@@ -6,6 +6,25 @@ adheres to [Semantic Versioning](https://semver.org/). The canonical version
 lives in `package.json` (exported as `VERSION` from `scripts/lib/registry.mjs`);
 `consistency.test.mjs` asserts the latest entry below matches it.
 
+## [0.3.0] - 2026-06-07
+
+### Added
+- **Skill-driven adopt.** `install.mjs` bundles a self-contained adopt engine
+  into the `adopt-existing-project` skill (`engine/scripts` + `engine/claude-rules`),
+  so applying project-starter to an *existing* repo is just "ask Claude" —
+  symmetric with the new-project flow, no clone path or raw command to type.
+  `inspect-project` uses the same bundled engine.
+- The install manifest now records `lang=`.
+
+### Changed
+- README (en + ko): the existing-project path leads with the skill-driven flow;
+  the raw `node scripts/adopt.mjs` command is demoted to a "Scripted / CI" subsection.
+
+### Fixed
+- `adopt.mjs` `isMain` detection resolves symlinks (`fs.realpathSync`) so the
+  bundled engine runs correctly under symlinked install paths (e.g. macOS
+  `/var` → `/private/var`).
+
 ## [0.2.0] - 2026-06-07
 
 ### Added

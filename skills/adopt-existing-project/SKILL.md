@@ -7,8 +7,10 @@ description: Apply project-starter governance to an EXISTING, running project wi
 
 운영중 프로젝트에 project-starter 거버넌스를 **비파괴적으로** 입힌다. 코드를 새로 깔지 않는다.
 
+사용자가 "이 프로젝트에 project-starter 적용해줘", "기존 repo에 규칙 입혀줘" 처럼 말하면 이 스킬로 처리한다 — **사용자가 직접 명령을 칠 필요 없다.** 이 스킬에는 실행 엔진이 함께 번들돼 있다(이 SKILL.md 옆 `engine/`).
+
 ## When to Use
-- 이미 코드가 있는 repo에 규칙/거버넌스를 적용하고 싶을 때
+- 이미 코드가 있는 repo에 규칙/거버넌스를 적용하고 싶을 때 ("적용", "입혀줘", "adopt")
 - 고객/외부 repo를 표준 기판 위로 올릴 때
 
 ## When NOT to Use
@@ -25,12 +27,18 @@ description: Apply project-starter governance to an EXISTING, running project wi
 ### Step 1: 대상 확인
 대상 repo 경로 확인 (기본 cwd). `.git` 외 파일이 있어야 한다 (빈 디렉토리면 중단 → bootstrap 안내).
 
-### Step 2: 입양 실행
+### Step 2: 입양 실행 (번들 엔진)
+
+이 스킬에는 **자급자족 엔진**이 함께 설치돼 있다 — 이 `SKILL.md` 와 같은 디렉터리의 `engine/scripts/adopt.mjs`. 클론 경로를 알 필요가 없다. 이 SKILL.md를 읽어온 디렉터리를 `<SKILL_DIR>`(예: `~/.agents/skills/adopt-existing-project` 또는 `<project>/.claude/skills/adopt-existing-project`)이라 할 때:
+
 ```bash
-# 한국어 규칙으로 입양 (project-starter 레포에서 대상 경로를 PROJECT_ROOT로):
-PROJECT_ROOT=/path/to/target node /path/to/project-starter/scripts/adopt.mjs --lang ko
+# 대상 repo를 PROJECT_ROOT로, 세션 언어에 맞춰 --lang (한국어→ko, 영어→en)
+PROJECT_ROOT="<대상 repo 절대경로>" node "<SKILL_DIR>/engine/scripts/adopt.mjs" --lang ko
 ```
-이 스크립트가 수행: 스택 감지 → 필요한 규칙만 `./.claude/rules/` 복사 → CLAUDE.md managed block 합성 → `./.claude/adopt-report.md` 생성.
+- `<SKILL_DIR>` 은 **네가 이 스킬을 읽어온 실제 절대경로**로 치환한다.
+- 먼저 `--dry-run` 으로 미리보기, 적용 뒤 `--verify` 로 검증 가능.
+
+엔진이 수행: 스택 감지 → 필요한 규칙만 `./.claude/rules/` 복사 → CLAUDE.md 관리 블록 합성 → `./.claude/adopt-report.md` 생성.
 
 ### Step 3: 리포트 함께 검토
 `./.claude/adopt-report.md`를 사용자와 함께 본다:

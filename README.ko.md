@@ -21,12 +21,12 @@ project-starter는 두 가지 진입점을 제공합니다. 상황에 맞는 쪽
 | 가진 것 | 경로 | 하는 일 |
 |---|---|---|
 | **빈 디렉터리** (처음부터 시작) | **신규 프로젝트 — 부트스트랩** | `new-project-bootstrap` 스킬이 Next.js 15 + 인프라를 11단계로 결정론적으로 스캐폴딩 |
-| **이미 코드가 있는 repo** | **기존 프로젝트 — 적용(adopt)** | `adopt.mjs`가 사용 중인 스택을 감지해 맞는 규칙만 vendoring — **소스는 절대 건드리지 않음** |
+| **이미 코드가 있는 repo** | **기존 프로젝트 — 적용(adopt)** | `adopt-existing-project` 스킬이 사용 중인 스택을 감지해 맞는 규칙만 vendoring — **소스는 절대 건드리지 않음** |
 
 두 경로 모두 먼저 project-starter의 규칙·스킬을 설치합니다(아래 **설치** 참고). 그 다음:
 
 - **신규** → 빈 디렉터리에서 Claude 세션을 시작해 부트스트랩을 트리거 (*신규 프로젝트 — 부트스트랩* 참고).
-- **기존** → repo에서 adopt 플로우 실행 (*기존 프로젝트 — 적용(adopt)* 참고).
+- **기존** → 그 repo에서 Claude에게 적용 요청 (*adopt-existing-project* 스킬).
 
 ## 사전 요구사항
 
@@ -396,23 +396,29 @@ new-project-bootstrap 스킬을 실행해줘.
 
 ## 기존 프로젝트 — 적용(adopt)
 
-이미 코드가 있는 repo라면 부트스트랩 대신 adopt 플로우를 씁니다 — 사용 중인 스택을
-감지해 맞는 규칙만 `./.claude/rules/`로 vendoring하고, `CLAUDE.md` 관리 블록을
-합성하며, 원본을 건드리지 않는 리포트 `./.claude/adopt-report.md`를 작성합니다. 소스 코드는 절대
-수정하지 않습니다.
+이미 코드가 있는 repo라면 — **그냥 Claude에게 말하면 됩니다.** 신규 경로와 똑같은
+모양이고, 직접 명령을 칠 필요가 없습니다. project-starter 설치 후, 그 repo에서
+Claude 세션을 열고 이렇게 말하세요:
 
-```bash
-PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --lang ko
-```
+> "이 프로젝트에 project-starter 적용해줘."
+
+`adopt-existing-project` 스킬이 **함께 번들된 자급자족 엔진**을 실행합니다(클론 경로
+불필요): 사용 중인 스택을 감지해 맞는 규칙만 `./.claude/rules/`로 vendoring하고,
+`CLAUDE.md` 관리 블록을 합성하며, 원본을 건드리지 않는 `./.claude/adopt-report.md`를
+작성합니다. **소스 코드는 절대 수정하지 않습니다.** 미리보기만 하려면 "이 프로젝트
+점검해줘"라고 하세요(read-only `inspect-project` 스킬).
 
 전용 규칙이 없는(쓰고 있지만 미지원) 스택은 capability generic 규칙으로 폴백되며,
 나중에 전용 규칙을 추가할 후보로 리포트에 표시됩니다.
 
-아무것도 바꾸지 않고 미리보기(`--dry-run`)하거나, 적용된 설치를 검증(`--verify`):
+### 스크립트 / CI (고급)
+
+스킬은 직접 실행할 수도 있는 엔진을 호출할 뿐입니다 — 자동화에 유용:
 
 ```bash
-PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --dry-run
-PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --verify
+PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --lang ko   # 적용
+PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --dry-run    # 미리보기(read-only)
+PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --verify     # 적용 상태 검증
 ```
 
 ## 시크릿 설정 (API 키 / 토큰)
