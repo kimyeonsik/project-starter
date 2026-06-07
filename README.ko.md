@@ -4,9 +4,9 @@
 
 [English](README.md) | **한국어**
 
-개인용 Claude Code 개발 인프라: 글로벌 규칙, 스택 옵트인 규칙, 그리고 두 진입점을 위한 스킬 — **새 프로젝트를 처음부터 부트스트랩**하거나, 기존 repo에 규칙을 **비파괴적으로 입양(adopt)**합니다.
+개인용 Claude Code 개발 인프라: 글로벌 규칙, 스택 옵트인 규칙, 그리고 두 진입점을 위한 스킬 — **새 프로젝트를 처음부터 부트스트랩**하거나, 기존 repo에 규칙을 **비파괴적으로 적용(adopt)**합니다.
 
-여러 머신에서 일관된 개발 환경을 명령 한 줄로 복제하도록 설계되었습니다. 처음이세요? 아래 **어느 경로? — 신규 vs 기존** 섹션부터 보세요.
+여러 머신에서 일관된 개발 환경을 명령 한 줄로 복제하도록 설계되었습니다. 처음이세요? 아래 **어디서 시작하나요?** 섹션부터 보세요.
 
 ## 설치되는 것
 
@@ -14,19 +14,19 @@
 - **스택 옵트인 규칙** (`~/.claude/rules/stacks/`): Next.js, Supabase, Vercel, Cloudflare, Playwright, Vitest, Claude API, Sentry, Amplitude, Tailwind + shadcn/ui, Resend, GitHub Actions
 - **부트스트랩 스킬** (`~/.agents/skills/new-project-bootstrap/`): Next.js 15 + TypeScript + pnpm + Supabase + Sentry + Amplitude + Vitest + Playwright + GitHub Actions CI를 프롬프트 한 번으로 셋업
 
-## 어느 경로? — 신규 프로젝트 vs 기존 프로젝트
+## 어디서 시작하나요? — 신규 vs 기존 프로젝트
 
 project-starter는 두 가지 진입점을 제공합니다. 상황에 맞는 쪽을 고르세요:
 
-| 가진 것 | 경로 | 무슨 일이 일어나나 |
+| 가진 것 | 경로 | 하는 일 |
 |---|---|---|
 | **빈 디렉터리** (처음부터 시작) | **신규 프로젝트 — 부트스트랩** | `new-project-bootstrap` 스킬이 Next.js 15 + 인프라를 11단계로 결정론적으로 스캐폴딩 |
-| **이미 코드가 있는 repo** | **기존 프로젝트 — 입양(adopt)** | `adopt.mjs`가 사용 중인 스택을 감지해 맞는 규칙만 vendoring — **소스는 절대 건드리지 않음** |
+| **이미 코드가 있는 repo** | **기존 프로젝트 — 적용(adopt)** | `adopt.mjs`가 사용 중인 스택을 감지해 맞는 규칙만 vendoring — **소스는 절대 건드리지 않음** |
 
 두 경로 모두 먼저 project-starter의 규칙·스킬을 설치합니다(아래 **설치** 참고). 그 다음:
 
 - **신규** → 빈 디렉터리에서 Claude 세션을 시작해 부트스트랩을 트리거 (*신규 프로젝트 — 부트스트랩* 참고).
-- **기존** → repo에서 입양 플로우 실행 (*기존 프로젝트 — 입양* 참고).
+- **기존** → repo에서 adopt 플로우 실행 (*기존 프로젝트 — 적용(adopt)* 참고).
 
 ## 사전 요구사항
 
@@ -49,7 +49,7 @@ project-starter는 두 가지 진입점을 제공합니다. 상황에 맞는 쪽
 
 이 선택은 모든 플랫폼에서 동일합니다:
 
-- **`project`** (기본): **현재 디렉토리**에 설치 — `./.claude/rules/`, `./.claude/skills/`, `./CLAUDE.md` 생성. `~/.claude/`는 건드리지 않음. 단일 프로젝트에서 toolkit을 써보거나 프로젝트별로 규칙을 다르게 두고 싶을 때 사용.
+- **`project`** (기본): **현재 디렉토리**에 설치 — `./.claude/rules/`, `./.claude/skills/`, `./CLAUDE.md` 생성. `~/.claude/`는 건드리지 않음. 단일 프로젝트에서 툴킷을 써보거나 프로젝트별로 규칙을 다르게 두고 싶을 때 사용.
 - **`global`**: `~/.claude/rules/`, `~/.agents/skills/`에 설치하고 `~/.claude/CLAUDE.md`에 병합. 머신의 모든 Claude 세션에 적용.
 
 설치 시 선택 프롬프트가 뜨거나, `SCOPE=project` / `SCOPE=global`로 미리 지정할 수 있습니다 (정확한 문법은 각 플랫폼 섹션의 옵션 참고).
@@ -159,7 +159,7 @@ node $HOME\projects\project-starter\scripts\install.mjs
 
 ## 스킬 번들
 
-설치기는 [skills.sh](https://skills.sh)에서 엄선한 외부 스킬 세트를 받아와, 새 머신에서도 전체 사용자 여정 toolkit을 바로 갖추게 합니다.
+설치기는 [skills.sh](https://skills.sh)에서 엄선한 외부 스킬 세트를 받아와, 새 머신에서도 아이디어→배포까지 이어지는 스킬 세트를 한 번에 갖추게 합니다.
 
 ### 번들 선택
 
@@ -327,7 +327,7 @@ new-project-bootstrap 스킬을 실행해줘.
 
 ## 신규 프로젝트: 기존 자료로 시작하기 (PRD, 더미 사이트, 디자인 참고)
 
-이미 PRD, 동작하는 더미 사이트, Figma 파일, 기타 참고 자료가 있다면 부트스트랩이 흡수할 수 있습니다. 미리 정리할 필요 없이 — 부트스트랩 인터뷰 중 경로를 붙여넣으면 Claude가 `_inputs/`에 분류해 줍니다.
+이미 PRD, 동작하는 더미 사이트, Figma 파일, 기타 참고 자료가 있다면 부트스트랩이 가져다 씁니다. 미리 정리할 필요 없이 — 부트스트랩 인터뷰 중 경로를 붙여넣으면 Claude가 `_inputs/`에 분류해 줍니다.
 
 ### 동작 방식
 
@@ -394,11 +394,11 @@ new-project-bootstrap 스킬을 실행해줘.
 
 프로젝트가 실제로 쓰는 것에 맞춰 스택 import를 추가/제거하세요.
 
-## 기존 프로젝트 — 입양(adopt)
+## 기존 프로젝트 — 적용(adopt)
 
-이미 코드가 있는 repo라면 부트스트랩 대신 입양 플로우를 씁니다 — 사용 중인 스택을
-감지해 맞는 규칙만 `./.claude/rules/`로 vendoring하고, `CLAUDE.md` managed 블록을
-합성하며, 비파괴 리포트 `./.claude/adopt-report.md`를 작성합니다. 소스 코드는 절대
+이미 코드가 있는 repo라면 부트스트랩 대신 adopt 플로우를 씁니다 — 사용 중인 스택을
+감지해 맞는 규칙만 `./.claude/rules/`로 vendoring하고, `CLAUDE.md` 관리 블록을
+합성하며, 원본을 건드리지 않는 리포트 `./.claude/adopt-report.md`를 작성합니다. 소스 코드는 절대
 수정하지 않습니다.
 
 ```bash
@@ -417,10 +417,10 @@ PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --verify
 
 ## 시크릿 설정 (API 키 / 토큰)
 
-`setup-secrets` 스킬(`skills/setup-secrets/setup-secrets.mjs`)로 `.env.local`에 키를 대화형으로 주입합니다. 크로스플랫폼 Node이며, `setup-secrets.sh`는 bash 셸용 얇은 셰임입니다. 별도 스크립트로 둔 이유:
+`setup-secrets` 스킬(`skills/setup-secrets/setup-secrets.mjs`)로 `.env.local`에 키를 대화형으로 주입합니다. 크로스플랫폼 Node이며, `setup-secrets.sh`는 bash 셸용 얇은 래퍼(shim)입니다. 별도 스크립트로 둔 이유:
 
 - 시크릿이 AI 채팅에 절대 붙여넣어지지 않음 (로그/대화 기록 유출 방지)
-- **에이전트도 파일을 읽지 못함:** 설치기가 `settings.json`에 `permissions.deny` 규칙을 추가해 Claude의 Read/Bash 도구가 `.env*`·개인키를 열 수 없게 함. 붙여넣은 키든 에이전트가 읽은 키든 둘 다 모델 컨텍스트에 들어가는 유출이므로, 권고가 아니라 **읽기 자체를 하드 차단**한다. 실제 값은 런타임(`pnpm dev`, CLI)이 소비하고 코드에선 `process.env.X`로만 참조 — 에이전트는 값을 볼 일이 없다.
+- **에이전트도 파일을 읽지 못함:** 설치기가 `settings.json`에 `permissions.deny` 규칙을 추가해 Claude의 Read/Bash 도구가 `.env*`·개인키를 열 수 없게 함. 붙여넣은 키든 에이전트가 읽은 키든 둘 다 모델 컨텍스트에 들어가는 유출이므로, 권고가 아니라 **읽기 자체를 하드 차단합니다**. 실제 값은 런타임(`pnpm dev`, CLI)이 소비하고 코드에선 `process.env.X`로만 참조 — 에이전트는 값을 볼 일이 없습니다.
 - 숨김(no-echo) 입력으로 받고 파일을 소유자 전용으로 제한 — macOS/Linux는 `chmod 600`, Windows는 `icacls`
 - 각 서비스마다 **키 발급 위치**, **선택할 스코프/권한**, **시크릿 vs 퍼블릭 구분**을 먼저 안내
 - 멱등 — 재실행 시 기존 키를 그 자리에서 교체하고 중복 추가하지 않음
@@ -546,15 +546,15 @@ project-starter/
 │   └── stacks/                  # 공통(영어) 스택 규칙
 ├── skills/
 │   ├── new-project-bootstrap/   # 부트스트랩 스킬 (SKILL.md)
-│   └── setup-secrets/           # setup-secrets.mjs (엔진) + .sh 셰임
+│   └── setup-secrets/           # setup-secrets.mjs (엔진) + .sh shim
 ├── scripts/
 │   ├── lib/util.mjs             # 공유 크로스플랫폼 헬퍼
 │   ├── install.mjs              # 설치기 엔진 (macOS / Linux / Windows)
 │   ├── uninstall.mjs            # 제거기 엔진
 │   ├── bootstrap.sh             # 원격 진입 — bash / WSL / Git Bash
 │   ├── bootstrap.ps1            # 원격 진입 — Windows / PowerShell
-│   ├── install.sh               # 얇은 bash 셰임 → install.mjs
-│   ├── uninstall.sh             # 얇은 bash 셰임 → uninstall.mjs
+│   ├── install.sh               # 얇은 bash shim → install.mjs
+│   ├── uninstall.sh             # 얇은 bash shim → uninstall.mjs
 │   └── verify.mjs               # 크로스플랫폼 생명주기 검증 하네스
 └── docs/
     ├── prereq.md
@@ -716,7 +716,7 @@ Select-String "BEGIN project-starter" .\CLAUDE.md -ErrorAction SilentlyContinue
 
 ## 기여
 
-이슈와 PR 환영합니다. 개인 인프라 toolkit이라 유지보수자가 의견을 빠르게 바꿀 수 있습니다 — 자유롭게 포크해서 커스터마이징하세요.
+이슈와 PR 환영합니다. 개인 인프라 툴킷이라 유지보수자가 의견을 빠르게 바꿀 수 있습니다 — 자유롭게 포크해서 커스터마이징하세요.
 
 ## 라이선스
 
