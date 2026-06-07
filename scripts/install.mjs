@@ -37,6 +37,7 @@ import {
 import {
   CORE_RULES, ESSENTIAL_SKILLS, WEB_SKILLS, SUPABASE_SKILLS, VERSION,
 } from './lib/registry.mjs';
+import { bundleAdoptEngine } from './lib/bundle-engine.mjs';
 
 const REPO_DIR = path.resolve(dirOf(import.meta.url), '..');
 const TS = timestamp();
@@ -319,20 +320,8 @@ for (const entry of fs.readdirSync(skillsSrc, { withFileTypes: true })) {
 }
 
 // Bundle a self-contained adopt engine into the adopt-existing-project skill so
-// the skill can run it directly without knowing the clone path. The layout
-// mirrors the repo (engine/scripts/{adopt.mjs,lib/*} + engine/claude-rules +
-// engine/package.json) so adopt.mjs's own path resolution works unchanged.
-const adoptSkillDir = path.join(SKILLS_DIR, 'adopt-existing-project');
-if (exists(adoptSkillDir)) {
-  const engine = path.join(adoptSkillDir, 'engine');
-  fs.rmSync(engine, { recursive: true, force: true }); // clean rebuild on re-install
-  fs.mkdirSync(path.join(engine, 'scripts', 'lib'), { recursive: true });
-  copyRecursive(path.join(REPO_DIR, 'claude-rules'), path.join(engine, 'claude-rules'));
-  fs.copyFileSync(path.join(REPO_DIR, 'scripts', 'adopt.mjs'), path.join(engine, 'scripts', 'adopt.mjs'));
-  for (const f of ['stack-detect.mjs', 'gap-analysis.mjs', 'vendor.mjs', 'util.mjs', 'registry.mjs']) {
-    fs.copyFileSync(path.join(REPO_DIR, 'scripts', 'lib', f), path.join(engine, 'scripts', 'lib', f));
-  }
-  fs.copyFileSync(path.join(REPO_DIR, 'package.json'), path.join(engine, 'package.json'));
+// it can run without knowing the clone path (shared logic with update.mjs).
+if (bundleAdoptEngine(SKILLS_DIR, REPO_DIR)) {
   ok('Bundled self-contained adopt engine into adopt-existing-project skill');
 }
 

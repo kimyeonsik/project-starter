@@ -589,6 +589,19 @@ project-starter/
 | 부트스트랩 도중 실패 | `git status`로 부분 상태 확인; 실패 단계부터 재실행 (단계는 멱등) |
 | 새 프로젝트 전체 롤백 | `cd .. && rm -rf <project-name> && mkdir <project-name>` |
 
+## 업데이트
+
+최신 project-starter를 받아 기존 설치를 제자리에서 새로고침합니다 — 프롬프트도, churn도 없이:
+
+```bash
+cd /path/to/project-starter && git pull
+node scripts/update.mjs            # 또는: SCOPE=global node scripts/update.mjs
+```
+
+설치 매니페스트(스코프·언어)를 읽어 `installed vX → current vY` 와 CHANGELOG 변경점을 보여주고, 규칙 + project-starter 스킬(번들된 adopt 엔진 포함) + `CLAUDE.md` 관리 블록을 content-aware로 새로고침한 뒤 기록된 버전을 올립니다. `--skills` 를 붙이면 외부 스킬도 `npx skills update`.
+
+**적용(adopt)한 repo**는 방식이 다릅니다: adopt 스킬을 다시 실행(또는 `node scripts/adopt.mjs`)하면 됩니다 — content-aware·idempotent라 새 규칙을 churn 없이 가져옵니다.
+
 ## 제거
 
 제거는 설치 매니페스트를 읽어 만든 것만 정확히 삭제합니다(아래 [동작 방식](#동작-방식-매니페스트-기반-제거) 참고). 본인 플랫폼을 고르세요.

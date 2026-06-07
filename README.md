@@ -590,6 +590,19 @@ See `docs/customization.md`.
 | Bootstrap mid-run failure | Check `git status` for partial state; re-run from failed step (steps are idempotent) |
 | Full rollback of a new project | `cd .. && rm -rf <project-name> && mkdir <project-name>` |
 
+## Updating
+
+Pull the latest project-starter and refresh your install in place — no prompts, no churn:
+
+```bash
+cd /path/to/project-starter && git pull
+node scripts/update.mjs            # or: SCOPE=global node scripts/update.mjs
+```
+
+It reads your install manifest (scope, language), reports `installed vX → current vY` with the CHANGELOG delta, and content-aware refreshes the rules, the project-starter skills (including the bundled adopt engine), and the `CLAUDE.md` managed block — then bumps the recorded version. Add `--skills` to also `npx skills update` the external skills.
+
+**Adopted repos** update differently: just re-run the adopt skill (or `node scripts/adopt.mjs`) — it's content-aware and idempotent, so it picks up new rules with no churn.
+
 ## Uninstall
 
 Removal reads the install manifest and deletes exactly what was created (see [How it works](#how-it-works-manifest-based-removal) below). Pick your platform.
