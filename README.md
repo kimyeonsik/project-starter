@@ -4,9 +4,9 @@
 
 **English** | [한국어](README.ko.md)
 
-Personal Claude Code development infrastructure: global rules, stack opt-ins, and a deterministic Next.js bootstrap skill.
+Personal Claude Code development infrastructure: global rules, stack opt-in rules, and skills for two entry points — **bootstrap a brand-new project** from scratch, or **adopt** the conventions into an existing repo (non-destructively).
 
-Designed to replicate a consistent dev environment across machines in one command.
+Designed to replicate a consistent dev environment across machines in one command. New here? Start with [Which path? — New project vs Existing project](#which-path--new-project-vs-existing-project).
 
 ## What It Sets Up
 
@@ -14,27 +14,29 @@ Designed to replicate a consistent dev environment across machines in one comman
 - **Stack opt-in rules** (`~/.claude/rules/stacks/`): Next.js, Supabase, Vercel, Cloudflare, Playwright, Vitest, Claude API, Sentry, Amplitude, Tailwind + shadcn/ui, Resend, GitHub Actions
 - **Bootstrap skill** (`~/.agents/skills/new-project-bootstrap/`): one-prompt new project setup with Next.js 15 + TypeScript + pnpm + Supabase + Sentry + Amplitude + Vitest + Playwright + GitHub Actions CI
 
-### Adopt an existing project
+## Which path? — New project vs Existing project
 
-For a repo that already has code, use the adopt flow instead of bootstrap — it
-detects the in-use stack, vendors only the matching rules into `./.claude/rules/`,
-synthesizes a `CLAUDE.md` managed block, and writes a non-destructive
-`./.claude/adopt-report.md`. It never modifies your source code.
+project-starter serves two entry points. Pick the one that matches your situation:
 
-```bash
-PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --lang en
-```
+| You have... | Path | What happens |
+|---|---|---|
+| an **empty directory** (from scratch) | **New project — bootstrap** | the `new-project-bootstrap` skill scaffolds Next.js 15 + infra in 11 deterministic steps |
+| a **repo that already has code** | **Existing project — adopt** | `adopt.mjs` detects the in-use stack and vendors only the matching rules — **it never touches your source** |
 
-Unsupported-but-in-use stacks fall back to capability-generic rules and are
-flagged in the report for optional dedicated-rule authoring later.
+Both paths first install project-starter's rules and skills (see **Install**). Then:
 
-Preview without changing anything (`--dry-run`), or verify an applied install
-(`--verify`):
+- **New** → start a Claude session in the empty dir and trigger the bootstrap (see *New project — bootstrap*).
+- **Existing** → run the adopt flow on your repo (see *Existing project — adopt*).
 
-```bash
-PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --dry-run
-PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --verify
-```
+## Prerequisites
+
+- Node 20+
+- pnpm (`corepack enable && corepack prepare pnpm@latest --activate`)
+- git
+- (optional, recommended) `gh` for the bootstrap skill's GitHub repo creation
+- Claude Code CLI ([install](https://claude.com/claude-code))
+
+See `docs/prereq.md` for installation guidance.
 
 ## Install
 
@@ -302,6 +304,118 @@ When done:
 rm -rf /tmp/ps-verify
 ```
 
+## New project — bootstrap
+
+In any empty directory, start a Claude session and trigger the bootstrap:
+
+```bash
+mkdir ~/projects/my-app && cd ~/projects/my-app
+claude
+```
+
+Then in the session:
+```
+I want to start a new project — a mobile web app for ...
+```
+
+The `new-project-bootstrap` skill activates after `brainstorming` confirms scope. It runs 11 deterministic steps and verifies with lint + tests + build + E2E.
+
+To force-trigger if auto-activation misses:
+```
+Run the new-project-bootstrap skill.
+```
+
+## New project: starting with existing materials (PRD, dummy site, design refs)
+
+If you already have a PRD, a working dummy site, Figma file, or other reference material, the bootstrap can ingest them. You don't need to organize them in advance — paste the paths during the bootstrap interview and Claude sorts them into `_inputs/` for you.
+
+### How it works
+
+During Step 0.5 of `new-project-bootstrap`, Claude asks:
+
+```
+기존에 가지고 있는 자료가 있나요? 경로를 알려주시면 _inputs/에 정리합니다.
+
+  PRD/스펙:             <path>
+  더미 사이트/프로토타입:  <path or URL>
+  디자인/와이어프레임:    <path>
+  Figma:               <URL>
+  리서치/경쟁사:        <path>
+  사용자 인터뷰:        <path>
+  데이터 샘플:          <path>
+
+또는 'none':
+```
+
+Paste the entries you have. Claude classifies them by keyword and copies (or symlinks for large files) into the right slot.
+
+### Auto-classification map
+
+| Your wording | Lands in |
+|---|---|
+| `prd` / `spec` / `requirements` / 기획서 | `_inputs/prd/` |
+| `dummy site` / `prototype` / 더미 / 시안 | `_inputs/dummy-site/` |
+| `design` / `wireframe` / `screenshot` | `_inputs/design/` |
+| `figma.com/...` URL | `_inputs/figma/` (+ Figma MCP fetches metadata) |
+| Other `http(s)://...` URL | `_inputs/live-refs/` (+ Playwright captures screenshots) |
+| `research` / `competitor` / 경쟁사 | `_inputs/research/` |
+| `user interview` / `survey` | `_inputs/user-research/` |
+| `data` / sample CSV/JSON | `_inputs/data/` |
+
+### Dummy site gets extra treatment
+
+When a dummy site lands in `_inputs/dummy-site/`, Claude additionally:
+- captures per-page screenshots via Playwright → `_inputs/dummy-site/screenshots/`
+- extracts HTML structure hints → `_inputs/dummy-site/structure.md`
+- pulls CSS variables / color tokens → `_inputs/dummy-site/tokens-draft.md`
+
+These then feed into Stage 3 (Design) so `frontend-design` builds the new UI with the same tone.
+
+### Pre-organized inputs also work
+
+If you already laid things out under `./_inputs/` before starting bootstrap, those are auto-detected — no need to re-paste.
+
+### Post-bootstrap
+
+By default `_inputs/` is added to `.gitignore` (reference only, not shipped). You can opt to commit it if the material is part of the spec.
+
+## Per-Project CLAUDE.md (Opt-in Stacks)
+
+The bootstrap skill auto-generates a project `CLAUDE.md` like:
+
+```markdown
+# my-app Rules
+
+@~/.claude/rules/stacks/nextjs.md
+@~/.claude/rules/stacks/supabase.md
+@~/.claude/rules/stacks/vercel.md
+@~/.claude/rules/stacks/playwright.md
+```
+
+Add or remove stack imports based on what the project actually uses.
+
+## Existing project — adopt
+
+For a repo that already has code, use the adopt flow instead of bootstrap — it
+detects the in-use stack, vendors only the matching rules into `./.claude/rules/`,
+synthesizes a `CLAUDE.md` managed block, and writes a non-destructive
+`./.claude/adopt-report.md`. It never modifies your source code.
+
+```bash
+PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --lang en
+```
+
+Unsupported-but-in-use stacks fall back to capability-generic rules and are
+flagged in the report for optional dedicated-rule authoring later.
+
+Preview without changing anything (`--dry-run`), or verify an applied install
+(`--verify`):
+
+```bash
+PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --dry-run
+PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --verify
+```
+
 ## Secrets Setup (API keys / tokens)
 
 Use the `setup-secrets` skill (`skills/setup-secrets/setup-secrets.mjs`) to inject keys into `.env.local` interactively. It's cross-platform Node; `setup-secrets.sh` is a thin shim for bash shells. Why a separate script:
@@ -417,6 +531,58 @@ $f="$env:TEMP\setup-secrets.mjs"; irm https://raw.githubusercontent.com/kimyeons
 - After 3 invalid retries the key is skipped (not partially written)
 - Displayed values are masked (`abcd••••wxyz`) — full secret never appears on screen
 - Run the **validate** entry above anytime to re-check `.env.local` (prints each var with OK / format-unexpected)
+
+## MCP Servers (Optional but Recommended)
+
+Some skills work best with MCP servers connected (Supabase, Vercel). See `docs/mcp-setup.md`.
+
+## Repository Layout
+
+```
+project-starter/
+├── CLAUDE.md.template           # Managed block appended to ~/.claude/CLAUDE.md
+├── claude-rules/
+│   ├── en/                      # English language rule set
+│   ├── ko/                      # Korean language rule set
+│   └── stacks/                  # Common (English) stack rules
+├── skills/
+│   ├── new-project-bootstrap/   # The bootstrap skill (SKILL.md)
+│   └── setup-secrets/           # setup-secrets.mjs (engine) + .sh shim
+├── scripts/
+│   ├── lib/util.mjs             # Shared cross-platform helpers
+│   ├── install.mjs              # Installer engine (macOS / Linux / Windows)
+│   ├── uninstall.mjs            # Uninstaller engine
+│   ├── bootstrap.sh             # Remote entry — bash / WSL / Git Bash
+│   ├── bootstrap.ps1            # Remote entry — Windows / PowerShell
+│   ├── install.sh               # Thin bash shim → install.mjs
+│   ├── uninstall.sh             # Thin bash shim → uninstall.mjs
+│   └── verify.mjs               # Cross-platform lifecycle verification harness
+└── docs/
+    ├── prereq.md
+    ├── mcp-setup.md
+    └── customization.md
+```
+
+## Customization
+
+Modify rules in `claude-rules/` then re-run `bash scripts/install.sh` (or the one-liner) to apply changes. The installer backs up the previous version before overwriting.
+
+For permanent local edits without re-install overwrite, edit `~/.claude/rules/*` directly — but those changes will be lost on next install. Use this repo as source of truth.
+
+See `docs/customization.md`.
+
+## Troubleshooting
+
+| Symptom | Action |
+|---|---|
+| `install.sh: Permission denied` | `chmod +x scripts/install.sh scripts/uninstall.sh scripts/bootstrap.sh` (macOS/Linux) |
+| Windows: `bash` not recognized | Use the [PowerShell one-liner](#windows-powershell), or run `node scripts/install.mjs` directly |
+| Windows: `running scripts is disabled` (PowerShell) | One-off: `powershell -ExecutionPolicy Bypass -File scripts\bootstrap.ps1`, or `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` |
+| `Node 20+` warning | `brew install node@20` (or use nvm) |
+| Bootstrap skill not auto-activating | Start a new Claude session after install; check `ls ~/.agents/skills/new-project-bootstrap/SKILL.md` |
+| `gh: command not found` | `brew install gh && gh auth login` (only needed for repo creation, not for cloning this project) |
+| Bootstrap mid-run failure | Check `git status` for partial state; re-run from failed step (steps are idempotent) |
+| Full rollback of a new project | `cd .. && rm -rf <project-name> && mkdir <project-name>` |
 
 ## Uninstall
 
@@ -548,158 +714,6 @@ If the manifest is missing (e.g. an install from before this mechanism existed),
 - All `*.backup-<timestamp>` files (kept on disk as a safety net — use `PURGE_BACKUPS=1` to delete)
 - Anything inside install dirs that the installer didn't create (custom files, your edits outside the managed block)
 - Shell config, MCP server configs, other Claude Code settings
-
-## Prerequisites
-
-- Node 20+
-- pnpm (`corepack enable && corepack prepare pnpm@latest --activate`)
-- git
-- (optional, recommended) `gh` for the bootstrap skill's GitHub repo creation
-- Claude Code CLI ([install](https://claude.com/claude-code))
-
-See `docs/prereq.md` for installation guidance.
-
-## Starting With Existing Materials (PRD, dummy site, design refs)
-
-If you already have a PRD, a working dummy site, Figma file, or other reference material, the bootstrap can ingest them. You don't need to organize them in advance — paste the paths during the bootstrap interview and Claude sorts them into `_inputs/` for you.
-
-### How it works
-
-During Step 0.5 of `new-project-bootstrap`, Claude asks:
-
-```
-기존에 가지고 있는 자료가 있나요? 경로를 알려주시면 _inputs/에 정리합니다.
-
-  PRD/스펙:             <path>
-  더미 사이트/프로토타입:  <path or URL>
-  디자인/와이어프레임:    <path>
-  Figma:               <URL>
-  리서치/경쟁사:        <path>
-  사용자 인터뷰:        <path>
-  데이터 샘플:          <path>
-
-또는 'none':
-```
-
-Paste the entries you have. Claude classifies them by keyword and copies (or symlinks for large files) into the right slot.
-
-### Auto-classification map
-
-| Your wording | Lands in |
-|---|---|
-| `prd` / `spec` / `requirements` / 기획서 | `_inputs/prd/` |
-| `dummy site` / `prototype` / 더미 / 시안 | `_inputs/dummy-site/` |
-| `design` / `wireframe` / `screenshot` | `_inputs/design/` |
-| `figma.com/...` URL | `_inputs/figma/` (+ Figma MCP fetches metadata) |
-| Other `http(s)://...` URL | `_inputs/live-refs/` (+ Playwright captures screenshots) |
-| `research` / `competitor` / 경쟁사 | `_inputs/research/` |
-| `user interview` / `survey` | `_inputs/user-research/` |
-| `data` / sample CSV/JSON | `_inputs/data/` |
-
-### Dummy site gets extra treatment
-
-When a dummy site lands in `_inputs/dummy-site/`, Claude additionally:
-- captures per-page screenshots via Playwright → `_inputs/dummy-site/screenshots/`
-- extracts HTML structure hints → `_inputs/dummy-site/structure.md`
-- pulls CSS variables / color tokens → `_inputs/dummy-site/tokens-draft.md`
-
-These then feed into Stage 3 (Design) so `frontend-design` builds the new UI with the same tone.
-
-### Pre-organized inputs also work
-
-If you already laid things out under `./_inputs/` before starting bootstrap, those are auto-detected — no need to re-paste.
-
-### Post-bootstrap
-
-By default `_inputs/` is added to `.gitignore` (reference only, not shipped). You can opt to commit it if the material is part of the spec.
-
-## Usage After Install
-
-In any empty directory, start a Claude session and trigger the bootstrap:
-
-```bash
-mkdir ~/projects/my-app && cd ~/projects/my-app
-claude
-```
-
-Then in the session:
-```
-I want to start a new project — a mobile web app for ...
-```
-
-The `new-project-bootstrap` skill activates after `brainstorming` confirms scope. It runs 11 deterministic steps and verifies with lint + tests + build + E2E.
-
-To force-trigger if auto-activation misses:
-```
-Run the new-project-bootstrap skill.
-```
-
-## Per-Project CLAUDE.md (Opt-in Stacks)
-
-The bootstrap skill auto-generates a project `CLAUDE.md` like:
-
-```markdown
-# my-app Rules
-
-@~/.claude/rules/stacks/nextjs.md
-@~/.claude/rules/stacks/supabase.md
-@~/.claude/rules/stacks/vercel.md
-@~/.claude/rules/stacks/playwright.md
-```
-
-Add or remove stack imports based on what the project actually uses.
-
-## MCP Servers (Optional but Recommended)
-
-Some skills work best with MCP servers connected (Supabase, Vercel). See `docs/mcp-setup.md`.
-
-## Repository Layout
-
-```
-project-starter/
-├── CLAUDE.md.template           # Managed block appended to ~/.claude/CLAUDE.md
-├── claude-rules/
-│   ├── en/                      # English language rule set
-│   ├── ko/                      # Korean language rule set
-│   └── stacks/                  # Common (English) stack rules
-├── skills/
-│   ├── new-project-bootstrap/   # The bootstrap skill (SKILL.md)
-│   └── setup-secrets/           # setup-secrets.mjs (engine) + .sh shim
-├── scripts/
-│   ├── lib/util.mjs             # Shared cross-platform helpers
-│   ├── install.mjs              # Installer engine (macOS / Linux / Windows)
-│   ├── uninstall.mjs            # Uninstaller engine
-│   ├── bootstrap.sh             # Remote entry — bash / WSL / Git Bash
-│   ├── bootstrap.ps1            # Remote entry — Windows / PowerShell
-│   ├── install.sh               # Thin bash shim → install.mjs
-│   ├── uninstall.sh             # Thin bash shim → uninstall.mjs
-│   └── verify.mjs               # Cross-platform lifecycle verification harness
-└── docs/
-    ├── prereq.md
-    ├── mcp-setup.md
-    └── customization.md
-```
-
-## Customization
-
-Modify rules in `claude-rules/` then re-run `bash scripts/install.sh` (or the one-liner) to apply changes. The installer backs up the previous version before overwriting.
-
-For permanent local edits without re-install overwrite, edit `~/.claude/rules/*` directly — but those changes will be lost on next install. Use this repo as source of truth.
-
-See `docs/customization.md`.
-
-## Troubleshooting
-
-| Symptom | Action |
-|---|---|
-| `install.sh: Permission denied` | `chmod +x scripts/install.sh scripts/uninstall.sh scripts/bootstrap.sh` (macOS/Linux) |
-| Windows: `bash` not recognized | Use the [PowerShell one-liner](#windows-powershell), or run `node scripts/install.mjs` directly |
-| Windows: `running scripts is disabled` (PowerShell) | One-off: `powershell -ExecutionPolicy Bypass -File scripts\bootstrap.ps1`, or `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` |
-| `Node 20+` warning | `brew install node@20` (or use nvm) |
-| Bootstrap skill not auto-activating | Start a new Claude session after install; check `ls ~/.agents/skills/new-project-bootstrap/SKILL.md` |
-| `gh: command not found` | `brew install gh && gh auth login` (only needed for repo creation, not for cloning this project) |
-| Bootstrap mid-run failure | Check `git status` for partial state; re-run from failed step (steps are idempotent) |
-| Full rollback of a new project | `cd .. && rm -rf <project-name> && mkdir <project-name>` |
 
 ## Contributing
 
