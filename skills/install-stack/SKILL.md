@@ -35,7 +35,7 @@ description: Guided installation of a NEW stack into an existing project for an 
 ### Step 1: 입력 확정
 - **모드**(`add` | `upgrade` | `replace`), 대상 스택, capability, 대상 repo 경로(기본 cwd)를 확정한다. upgrade면 목표 버전, replace면 **from(구스택)·to(신스택)**.
 - `replace` **진입 가드**: 반드시 stack-assess가 **risk=low**(상태없음+낮은blast+테스트)로 넘긴 경우에만. 상태 있는 capability이거나 risk≥medium이면 **거부**(여기로 오면 안 됨).
-- `add`인데 이미 그 capability를 쓰고 있으면 → **중단**. 다른 스택으로의 교체는 범위 밖(제안만, stack-assess)임을 안내.
+- `add`인데 이미 그 capability를 쓰고 있으면 → **중단**. 다른 스택으로의 교체는 stack-assess가 위험 등급으로 판정(low만 실행)함을 안내.
 - `upgrade`는 이미 쓰는 그 스택을 같은 계열 상위 버전으로 올리는 경우에만.
 
 ### Step 2: 안전 전제 (git)

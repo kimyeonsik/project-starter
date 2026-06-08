@@ -5,7 +5,7 @@ description: Score the IN-USE stacks of a project (security, maintenance, versio
 
 # Stack Assess
 
-이미 쓰는 스택의 **적절성을 점수화**하고, 미달 스택에 대해 영향범위를 고려해 **업그레이드(실행 가능)** 또는 **교체(제안만)** 를 제시한다. 평가 자체는 read-only다.
+이미 쓰는 스택의 **적절성을 점수화**하고, 미달 스택에 대해 영향범위를 고려해 **업그레이드(실행 가능)** 또는 **교체(risk=low면 실행, 그 외 제안)** 를 제시한다. 평가 자체는 read-only다.
 
 ## When to Use
 - "기존 스택 평가/감사해줘", "이 의존성 낡았어?", "업그레이드해야 해?", "이거 더 나은 대안 있어?"
