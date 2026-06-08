@@ -4,6 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { inUseSignals } from './stack-signals.mjs';
+import { readinessSignals } from './migration-readiness.mjs';
 
 // 표준 거버넌스 산출물 체크리스트.
 const GOVERNANCE = ['_team/', 'docs/adr/', 'CLAUDE.md', 'CONTEXT.md'];
@@ -52,6 +53,7 @@ export function analyzeGaps(repoDir, detected) {
     profile: profile(detected),
     absentCapabilities: absentCapabilities(detected),
     inUse: inUseSignals(repoDir, detected),
+    readiness: readinessSignals(repoDir),
   };
 }
 
@@ -101,6 +103,11 @@ export function renderReport(gaps, detected) {
       const ver = s.installedVersion || '—';
       lines.push(`| ${s.stack} | ${s.capability} | ${ver} | ${s.usageCount} | ${s.blastRadius} |`);
     }
+    lines.push('');
+  }
+  if (gaps.readiness) {
+    const yn = (b) => (b ? '✓' : '✗');
+    lines.push(`**마이그레이션 준비도**: 테스트 ${yn(gaps.readiness.hasTests)} · CI ${yn(gaps.readiness.hasCI)} · 환경분리 ${yn(gaps.readiness.envSeparation)} — 교체 위험 등급의 입력(테스트 없으면 교체 실행 불가).`);
     lines.push('');
   }
   if (gaps.absentCapabilities && gaps.absentCapabilities.length) {

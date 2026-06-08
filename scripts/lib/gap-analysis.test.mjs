@@ -121,3 +121,20 @@ test('renderReport shows the in-use stack section with version + blast', () => {
   assert.match(md, /15\.0\.0/);
   assert.match(md, /영향범위|blast/i);
 });
+
+// ---- migration readiness ----
+
+test('analyzeGaps includes readiness; renderReport shows 준비도 line', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'readygap-'));
+  fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ devDependencies: { vitest: '2.0.0' } }));
+  fs.mkdirSync(path.join(dir, 'src'));
+  fs.writeFileSync(path.join(dir, 'src', 'a.test.ts'), 'test("x",()=>{})');
+  const detected = [{ stack: 'vitest', capability: 'test-runner', ruleStatus: 'named' }];
+  const gaps = analyzeGaps(dir, detected);
+  assert.ok(gaps.readiness);
+  assert.equal(gaps.readiness.hasTests, true);
+  const md = renderReport(gaps, detected);
+  assert.match(md, /마이그레이션 준비도/);
+  assert.match(md, /테스트/);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
