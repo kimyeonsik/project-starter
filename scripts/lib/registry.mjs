@@ -40,7 +40,7 @@ export const ESSENTIAL_SKILLS = [
   'mattpocock/skills@request-refactor-plan',
 ];
 export const WEB_SKILLS = [
-  'vercel-labs/skills@vercel-react-best-practices',
+  'vercel-labs/agent-skills@vercel-react-best-practices',
   'wshobson/agents@nextjs-app-router-patterns',
   'wshobson/agents@typescript-advanced-types',
   'anthropics/skills@webapp-testing',
