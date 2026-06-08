@@ -3,6 +3,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { inUseSignals } from './stack-signals.mjs';
 
 // 표준 거버넌스 산출물 체크리스트.
 const GOVERNANCE = ['_team/', 'docs/adr/', 'CLAUDE.md', 'CONTEXT.md'];
@@ -50,6 +51,7 @@ export function analyzeGaps(repoDir, detected) {
     unsupportedStacks,
     profile: profile(detected),
     absentCapabilities: absentCapabilities(detected),
+    inUse: inUseSignals(repoDir, detected),
   };
 }
 
@@ -85,6 +87,19 @@ export function renderReport(gaps, detected) {
     lines.push('');
     for (const m of gaps.missing) {
       lines.push(`- \`${m}\` 없음 — 추가 권장 (적용은 승인 후 별건).`);
+    }
+    lines.push('');
+  }
+  if (gaps.inUse && gaps.inUse.length) {
+    lines.push('## 기존 스택 (적절성 점검 후보)');
+    lines.push('');
+    lines.push('아래는 이미 쓰는 스택의 결정론 신호다 — `/assess` 로 점수화(보안·유지보수·버전노후·프로필적합)해 업그레이드/교체 후보를 가린다.');
+    lines.push('');
+    lines.push('| 스택 | capability | 설치버전 | 사용처 | 영향범위 |');
+    lines.push('|---|---|---|---|---|');
+    for (const s of gaps.inUse) {
+      const ver = s.installedVersion || '—';
+      lines.push(`| ${s.stack} | ${s.capability} | ${ver} | ${s.usageCount} | ${s.blastRadius} |`);
     }
     lines.push('');
   }

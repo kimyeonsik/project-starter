@@ -91,3 +91,33 @@ test('renderReport: shows profile + empty-capability candidates section', () => 
   assert.match(md, /빈 capability/);
   assert.match(md, /\/recommend/);
 });
+
+// ---- Plan B Task 4: in-use stack signals ----
+
+function fixtureNext() {
+  return mkDir({
+    'package.json': JSON.stringify({ dependencies: { next: '15.0.0' } }),
+    'app.tsx': `import 'next/link'`,
+  });
+}
+
+test('analyzeGaps includes inUse signals', () => {
+  const dir = fixtureNext();
+  const detected = [{ stack: 'nextjs', capability: 'framework', ruleStatus: 'named' }];
+  const gaps = analyzeGaps(dir, detected);
+  assert.ok(Array.isArray(gaps.inUse));
+  const next = gaps.inUse.find((s) => s.stack === 'nextjs');
+  assert.equal(next.installedVersion, '15.0.0');
+  assert.equal(next.blastRadius, 'low');
+});
+
+test('renderReport shows the in-use stack section with version + blast', () => {
+  const dir = fixtureNext();
+  const detected = [{ stack: 'nextjs', capability: 'framework', ruleStatus: 'named' }];
+  const gaps = analyzeGaps(dir, detected);
+  const md = renderReport(gaps, detected);
+  assert.match(md, /기존 스택 \(적절성 점검 후보\)/);
+  assert.match(md, /nextjs/);
+  assert.match(md, /15\.0\.0/);
+  assert.match(md, /영향범위|blast/i);
+});
