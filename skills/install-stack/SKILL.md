@@ -15,6 +15,7 @@ description: Guided installation of a NEW stack into an existing project for an 
 - adopt의 대화형 게이트에서 "설치 진행" 동의 시
 - stack-assess가 **upgrade** 판정을 내고 사용자가 동의했을 때 (모드 `upgrade`)
 - stack-assess가 **교체를 risk=low 로 판정**하고 사용자가 동의했을 때 (모드 `replace`)
+- new-project-bootstrap이 신규 프로젝트의 capability 설치에 `add` 모드로 호출(greenfield, clean git는 부트스트랩 git init으로 충족)
 
 ## When NOT to Use
 - **상태 있는(db/auth/결제) 교체, 또는 stack-assess가 risk≥medium 으로 판정한 교체** → 실행 금지. stack-assess가 리포트한다.

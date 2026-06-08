@@ -1,6 +1,6 @@
 ---
 name: new-project-bootstrap
-description: Bootstrap a new Next.js + TypeScript + pnpm web project with Sentry, Amplitude, Supabase Auth, Vitest, Playwright, and GitHub Actions CI pre-configured. Use when the user wants to start a new web project from scratch and needs standardized infrastructure (analytics, crash reporting, testing, CI). Triggers after `superpowers:brainstorming` confirms project scope.
+description: Bootstrap a new project. Recommends a stack from the user's requirements (framework + db/auth/analytics/error-tracking/hosting/…) via recommend-stack (greenfield), scaffolds with the framework's official create tool, then applies governance (adopt) and installs capabilities. Next.js has a rich built-in preset; other frameworks (Vite/SvelteKit/Remix/Astro/Expo) use the generic install path. Use when starting a new project from scratch. Triggers after `superpowers:brainstorming` confirms project scope.
 ---
 
 # New Project Bootstrap
@@ -31,13 +31,13 @@ description: Bootstrap a new Next.js + TypeScript + pnpm web project with Sentry
 ## When to Use
 
 - 빈 디렉토리 또는 신규 디렉토리에서 사용자가 "프로젝트 시작", "처음 만들" 등 표현
-- 인프라 표준화가 필요한 새 Next.js 프로젝트
+- 인프라 표준화가 필요한 새 프로젝트 (Next.js, Vite, SvelteKit, Remix, Astro, Expo 등)
 - 분석/크래시/테스트가 처음부터 포함된 환경 필요
 
 ## When NOT to Use
 
 - 기존 프로젝트에 일부만 추가 (개별 통합은 직접 진행)
-- Next.js가 아닌 스택 (Vite SPA, Remix 등)
+- (참고) 이 스킬은 이제 프레임워크 가변이다 — Next 외 Vite/SvelteKit/Remix/Astro/Expo도 공식 스캐폴더 + generic 경로로 지원. "Next 전용"이 아님.
 - 메인 세션에서 사용자가 "스킬 쓰지 마" 명시
 
 ## Required Decisions (인터뷰)
@@ -49,7 +49,8 @@ description: Bootstrap a new Next.js + TypeScript + pnpm web project with Sentry
 | 프로젝트 이름 (디렉토리명) | 현재 디렉토리명 | 변경 원하면 사용자 입력 |
 | 앱 설명 (1~2줄) | — | **필수 입력** |
 | GitHub 레포 생성 | yes (private) | 거절 시 로컬만 |
-| Supabase 프로젝트 생성 | yes (MCP로 자동) | 기존 프로젝트 연결 가능 |
+| **스택 해소** | recommend-stack(greenfield) 추천 수락 | framework·db·auth·analytics 등 항목별 조정 가능 (Step 1.6) |
+| 외부 프로젝트 생성(Supabase/Sentry 등) | yes (해당 스택 선택 시, MCP/위저드 자동) | 거절 시 SDK/설정만 |
 | Sentry 프로젝트 생성 | yes | 거절 시 SDK만 설치 |
 | Amplitude API key | 사용자 입력 또는 placeholder | 나중 주입 가능 |
 
@@ -57,14 +58,14 @@ description: Bootstrap a new Next.js + TypeScript + pnpm web project with Sentry
 
 ### Step 0: 스킬 인벤토리 점검 (의존성 확인)
 
-이 부트스트랩이 11단계 진행하면서 의존하는 스킬들 — 누락 시 워크플로우가 끊긴다.
+이 부트스트랩이 여러 단계 진행하면서 의존하는 스킬들 — 누락 시 워크플로우가 끊긴다.
 
 | 단계 | 의존 스킬 | 역할 |
 |---|---|---|
 | 인터뷰 직전 | `brainstorming`, `grill-me`, `find-skills` | Discovery 마무리 |
-| Step 1.5 (계획) | `writing-plans` | 단계화 |
-| Step 3/4 (테스트 인프라) | `test-driven-development` | TDD 사이클 |
-| Step 5/6/7 (키 주입) | `setup-secrets` | API 키 안전 주입 |
+| Step 1.6 (스택 해소/계획) | `writing-plans` | 단계화 |
+| Step 3/4 (테스트 인프라) | `test-driven-development` | TDD 사이클 (Next 프리셋; 타 프레임워크는 Step 7′) |
+| Step 5/6/7 (키 주입) | `setup-secrets` | API 키 안전 주입 (Next 프리셋; 타 프레임워크는 Step 7′) |
 | Step 8 (구조) | `improve-codebase-architecture`, `frontend-design` | 디렉토리/디자인 |
 | Step 11 (최종 검증) | `verification-before-completion` | 게이트 |
 
@@ -298,19 +299,43 @@ echo "## [$(date '+%Y-%m-%d %H:%M')] baseline" >> _team/bootstrap-progress.md
 
 > 주: Step 10(Git + GitHub)에도 `git init`이 있다 — 이 진행추적이 활성화되면 Step 10의 init은 중복이므로 거기선 생략하고 원격 연결/푸시만 수행한다.
 
-### Step 2: Next.js 스캐폴드
+### Step 1.6: 스택 해소 (요구사항 → 추천)
 
-```bash
-pnpm create next-app@latest . \
-  --typescript --tailwind --eslint \
-  --app --src-dir --import-alias "@/*" \
-  --use-pnpm --skip-install
-pnpm install
-```
+아직 코드가 없다(빈 디렉터리). 요구사항을 모아 **recommend-stack(greenfield)** 으로 스택을 정한다.
 
-`--skip-install` 후 명시적 `pnpm install`로 잠금 파일 안정화.
+1. 인터뷰: `{ appDesc(필수), platform(web|native|edge), region, budget, constraints }`. (brainstorming 결과가 있으면 재사용)
+2. `recommend-stack` 스킬을 **greenfield 모드**로 호출 — 채울 capability = 표준 기본셋(framework·db·auth·analytics·error-tracking·hosting·test-runner·ci) + 사용자가 원하는 추가(email·payments·ai).
+3. 추천 스택 한 벌 제시 → 사용자 **전체 수락** 또는 **항목별 조정**.
+4. 결과를 **resolved 스택**으로 확정: `{ framework, capability→stack }`. 이후 단계가 이걸 참조.
 
-### Step 3: Vitest (유닛 테스트)
+> resolved.framework 가 이후 스캐폴더를, resolved의 각 capability가 설치 방식을 결정한다.
+
+### Step 2: 베이스 스캐폴드 (resolved.framework의 공식 도구)
+
+resolved.framework에 맞는 **공식 create 도구**로 베이스를 만든다(프레임워크별 스캐폴딩은 재발명하지 않음):
+
+| framework | 명령 |
+|---|---|
+| nextjs | `pnpm create next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias "@/*" --use-pnpm --skip-install` |
+| vite | `pnpm create vite@latest . --template react-ts` |
+| sveltekit | `pnpm create svelte@latest .` |
+| remix | `pnpm create remix@latest .` |
+| astro | `pnpm create astro@latest .` |
+| expo | `pnpm create expo-app@latest .` |
+
+그다음 `pnpm install`로 잠금 파일 안정화. 대화형 프롬프트가 막히면 사용자에게 안내.
+
+> **Next.js**: 아래 Step 3~7의 풍부한 프리셋(Vitest/Playwright/Sentry/Amplitude/Supabase/CI)을 그대로 사용.
+> **타 프레임워크**: Step 3~7 대신 **Step 7′(generic 설치)** 로 간다 — resolved의 각 capability를 `install-stack`(add)로 설치.
+
+### Step 2.5: 설치 경로 분기 (필수 게이트)
+
+**resolved.framework 로 분기한다. 선형으로 Step 3~7을 그냥 진행하지 말 것.**
+- **resolved.framework == nextjs** → 아래 **Step 3~7 (Next.js 프리셋)** 을 그대로 진행.
+- **그 외 프레임워크 (vite/sveltekit/remix/astro/expo)** → **Step 3~7을 건너뛰고 곧장 [Step 7′](#step-7-generic-capability-설치-타-프레임워크--비-default-선택)** 로 가서 resolved의 각 capability를 install-stack(add)로 설치. (Step 3~7의 명령은 Next 전용이라 타 프레임워크에서 실행 금지.)
+- Next 인데 특정 capability만 비-default면, 그 capability의 Step(예: Step 7 Supabase)은 건너뛰고 Step 7′에서 선택 스택을 설치.
+
+### Step 3: Vitest (유닛 테스트) — Next.js 프리셋 (그 외 프레임워크는 Step 7′)
 
 ```bash
 pnpm add -D vitest @vitejs/plugin-react jsdom \
@@ -352,7 +377,7 @@ import '@testing-library/jest-dom/vitest';
 
 샘플 테스트 `src/lib/utils.test.ts` 작성 후 `pnpm test:run` 통과 확인.
 
-### Step 4: Playwright (E2E, Chromium만)
+### Step 4: Playwright (E2E, Chromium만) — Next.js 프리셋 (그 외 프레임워크는 Step 7′)
 
 ```bash
 pnpm dlx playwright install chromium
@@ -392,7 +417,7 @@ export default defineConfig({
 }
 ```
 
-### Step 5: Sentry (Crash Reporting)
+### Step 5: Sentry (Crash Reporting) — Next.js 프리셋 (그 외/비-default는 Step 7′)
 
 ```bash
 pnpm dlx @sentry/wizard@latest -i nextjs --skip-connect
@@ -415,7 +440,7 @@ SERVICE=sentry node ~/.agents/skills/setup-secrets/setup-secrets.mjs
 # Windows (PS):   $env:SERVICE="sentry"; node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs
 ```
 
-### Step 6: Amplitude (Analytics)
+### Step 6: Amplitude (Analytics) — Next.js 프리셋 (그 외/비-default는 Step 7′)
 
 ```bash
 pnpm add @amplitude/analytics-browser
@@ -447,7 +472,7 @@ SERVICE=amplitude node ~/.agents/skills/setup-secrets/setup-secrets.mjs
 # Windows (PS):   $env:SERVICE="amplitude"; node $HOME\.agents\skills\setup-secrets\setup-secrets.mjs
 ```
 
-### Step 7: Supabase Auth + DB
+### Step 7: Supabase Auth + DB — Next.js 프리셋 (그 외/비-default는 Step 7′)
 
 Supabase MCP가 연결되어 있으면 자동:
 ```
@@ -469,6 +494,23 @@ SERVICE=supabase node ~/.agents/skills/setup-secrets/setup-secrets.mjs
 ```
 
 `src/lib/supabase/client.ts`, `src/lib/supabase/server.ts`, `src/middleware.ts` 표준 SSR 패턴 작성. (`supabase` 스킬의 SSR 가이드 참조)
+
+> **위 Step 5~7(Sentry/Amplitude/Supabase)은 Next.js 프리셋의 기본 레시피다.** resolved에서 해당 capability가 default가 아니면(예: db=Drizzle+D1, auth=Clerk) 그 Step의 기본 레시피 대신 **Step 7′**의 install-stack 경로로 설치한다.
+
+### Step 7′: generic capability 설치 (타 프레임워크 / 비-default 선택)
+
+Next 프리셋이 다루지 않는 capability(타 프레임워크 전체, 또는 Next에서 비-default 선택)는 **`install-stack` 스킬을 `add` 모드**로 설치한다. resolved의 각 capability에 대해:
+- 해당 스택을 `install-stack`(add)로 설치(공식 문서 리서치 → 런북 → 단계 승인 → 검증). clean git 게이트는 Step 1의 git init으로 충족.
+- 표준 기본셋(test-runner·error-tracking·analytics·db·auth·ci)은 프레임워크 불문 적용(설치만 generic).
+- 설치 후 규칙 vendoring은 install-stack이 adopt 재실행으로 처리(Step 7.9와 중복 시 idempotent).
+
+### Step 7.9: adopt — 거버넌스 vendoring
+
+스택이 깔렸으니 **adopt**으로 감지된 스택에 맞는 규칙을 `./.claude/rules/`에 vendoring하고 CLAUDE.md 관리블록을 만든다(프레임워크 무관, 비파괴):
+```bash
+PROJECT_ROOT="$(pwd)" node "<adopt-existing-project 스킬 디렉터리>/engine/scripts/adopt.mjs" --lang ko
+```
+named 규칙 없는 스택(예: sveltekit, clerk)은 capability generic으로 커버되고 리포트에 "전용 규칙 권장"으로 뜬다. (이게 신규/기존 공통 거버넌스 단계)
 
 ### Step 8: 디렉토리 구조
 
@@ -506,17 +548,21 @@ touch CONTEXT.md docs/adr/0001-initial-stack.md
 Accepted
 
 ## Decision
-- Framework: Next.js 15 (App Router)
+(resolved 스택을 그대로 기록 — 예시는 web 기본값)
+- Framework: <resolved.framework>
 - Lang: TypeScript
 - PM: pnpm
-- DB/Auth: Supabase
-- Analytics: Amplitude
-- Crash: Sentry
-- Unit: Vitest
+- Database: <resolved.database>
+- Auth: <resolved.auth>
+- Analytics: <resolved.analytics>
+- Crash: <resolved.error-tracking>
+- Hosting: <resolved.hosting>
+- Unit: <resolved.test-runner (default Vitest)>
 - E2E: Playwright (Chromium)
+- (선택) Email/Payments/AI: <resolved에 있으면>
 
 ## Rationale
-사용자 표준 부트스트랩 스킬에 의해 결정. 변경 시 새 ADR 발행.
+recommend-stack(greenfield) 추천 + 사용자 확정. 신호 근거(요구사항/궁합)는 추천 리포트 참조. 변경 시 새 ADR 발행.
 ```
 
 ### Step 9: 프로젝트 CLAUDE.md
@@ -526,19 +572,15 @@ Accepted
 
 <1-line description>
 
-@~/.claude/rules/stacks/nextjs.md
-@~/.claude/rules/stacks/supabase.md
-@~/.claude/rules/stacks/vercel.md
-@~/.claude/rules/stacks/playwright.md
-@~/.claude/rules/stacks/vitest.md
-@~/.claude/rules/stacks/sentry.md
-@~/.claude/rules/stacks/amplitude.md
-@~/.claude/rules/stacks/tailwind.md
-@~/.claude/rules/stacks/github-actions.md
-# Optional — uncomment as needed
-# @~/.claude/rules/stacks/cloudflare.md
-# @~/.claude/rules/stacks/claude-api.md
-# @~/.claude/rules/stacks/resend.md
+(프로젝트 CLAUDE.md의 스택 import는 **adopt(Step 7.9)이 resolved 스택 기준으로 자동 생성**한다 — 손으로 고정 목록을 적지 않는다. import 경로는 project scope이므로 @.claude/rules/stacks/<resolved stack>.md. named 규칙 없는 스택은 adopt이 capability generic으로 커버하고 리포트에 권장 표기.)
+
+> 아래는 결과 형태 예시일 뿐 — import는 adopt(Step 7.9)이 생성한다. 손으로 적지 말 것.
+
+예 (resolved = SvelteKit + Drizzle + D1 + Sentry):
+@.claude/rules/stacks/drizzle.md
+@.claude/rules/stacks/d1.md
+@.claude/rules/stacks/sentry.md
+@.claude/rules/capabilities/framework.md   # sveltekit named 없음 → generic
 
 ## Project-Specific
 
@@ -553,7 +595,7 @@ Accepted
 ```bash
 git init
 git add .
-git commit -m "chore: initial bootstrap (Next.js + Supabase + Sentry + Amplitude + Vitest + Playwright)"
+git commit -m "chore: initial bootstrap (<resolved.framework> + resolved stack)"
 
 # 사용자 동의 시:
 gh repo create <name> --private --source=. --push

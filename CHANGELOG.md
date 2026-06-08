@@ -6,6 +6,28 @@ adheres to [Semantic Versioning](https://semver.org/). The canonical version
 lives in `package.json` (exported as `VERSION` from `scripts/lib/registry.mjs`);
 `consistency.test.mjs` asserts the latest entry below matches it.
 
+## [0.10.0] - 2026-06-09
+
+### Added
+- **Requirement-driven, framework-pluggable new projects.** `new-project-bootstrap`
+  no longer hardcodes Next.js + Supabase. It now: gathers requirements → calls
+  `recommend-stack` (new **greenfield mode**) to recommend the whole stack incl.
+  **framework**, resolved in dependency order weighted by external signals →
+  compatibility with the chosen stack → reputation → default → scaffolds with the
+  framework's **official create tool** (Next/Vite/SvelteKit/Remix/Astro/Expo) →
+  applies governance via `adopt` → installs capabilities (Next.js preset recipes,
+  or `install-stack add` for other frameworks / non-default picks).
+- **recommend-stack greenfield mode**: requirement-driven, recommends framework
+  (greenfield only), compatibility-ordered. Existing mode unchanged.
+- **Dynamic ADR/CLAUDE.md** reflecting the resolved stack (via adopt), replacing the
+  fixed Supabase block.
+
+### Notes
+- Framework choice applies to new projects; existing projects were already
+  framework-agnostic via adopt's generic capability rules. Non-Next frameworks use
+  the generic install path (no bespoke preset yet). Data migration / non-interactive
+  bootstrap remain out of scope.
+
 ## [0.9.0] - 2026-06-08
 
 ### Added

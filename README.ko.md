@@ -13,7 +13,7 @@
 - **코어 규칙** (`.claude/rules/`): 언어 정책, Agent Teams 워크플로, 스킬 자동 활성화, git 워크플로(브랜치/커밋/PR), ADR 규율, 보안 베이스라인.
 - **스택 규칙**: **named** 스택(Next.js, Supabase, Drizzle, D1, Vercel, Cloudflare, Playwright, Vitest, Claude API, Sentry, Amplitude, Tailwind + shadcn/ui, Resend, GitHub Actions) **+ generic capability 규칙**(framework, database, auth, payments, hosting, email, ai, …) — named 규칙 없는 스택까지 커버.
 - **스킬** (`.claude/skills/` 또는 `~/.agents/skills/`):
-  - `new-project-bootstrap` — 한 번의 프롬프트로 신규 프로젝트(Next.js 15 + TypeScript + 인프라)
+  - `new-project-bootstrap` — 요구사항 기반 신규 프로젝트: framework + 스택 추천, 공식 create 도구(Next/Vite/SvelteKit/Remix/Astro/Expo)로 스캐폴드 후 adopt + 설치
   - `adopt-existing-project` / `inspect-project` — 기존 repo에 거버넌스 적용(비파괴) / read-only 미리보기
   - `recommend-stack` / `stack-assess` — 빈 capability에 무엇을 추가할지 / 쓰는 스택 점수화
   - `install-stack` — **add · upgrade · replace** 실행(코드 변경, 게이트)
@@ -28,12 +28,12 @@ project-starter는 두 가지 진입점을 제공합니다. 상황에 맞는 쪽
 
 | 가진 것 | 경로 | 하는 일 |
 |---|---|---|
-| **빈 디렉터리** (처음부터 시작) | **신규 프로젝트 — 부트스트랩** | `new-project-bootstrap` 스킬이 Next.js 15 + 인프라를 11단계로 결정론적으로 스캐폴딩 |
+| **빈 디렉터리** (처음부터 시작) | **신규 프로젝트 — 부트스트랩** | `new-project-bootstrap`이 요구사항 기반으로 스택(framework + db/auth/…)을 추천하고, 프레임워크의 **공식 create 도구**로 스캐폴드한 뒤 거버넌스(adopt)+설치를 수행 |
 | **이미 코드가 있는 repo** | **기존 프로젝트 — 적용(adopt)** | `adopt-existing-project` 스킬이 사용 중인 스택을 감지해 맞는 규칙만 vendoring — **소스는 절대 건드리지 않음** |
 
 두 경로 모두 먼저 project-starter의 규칙·스킬을 설치합니다(아래 **설치** 참고). 그 다음:
 
-- **신규** → 빈 디렉터리에서 Claude 세션을 시작해 부트스트랩을 트리거 (*신규 프로젝트 — 부트스트랩* 참고).
+- **신규** → 빈 디렉터리에서 Claude 세션을 열고 부트스트랩을 트리거 — 인터뷰로 요구사항을 받아 스택(framework 포함)을 추천하고 만든다 (*신규 프로젝트 — 부트스트랩* 참고).
 - **기존** → 그 repo에서 Claude에게 적용 요청 (*adopt-existing-project* 스킬).
 
 ## 스택 라이프사이클
@@ -43,18 +43,22 @@ project-starter는 두 가지 진입점을 제공합니다. 상황에 맞는 쪽
 ```mermaid
 flowchart TD
     install["project-starter 툴킷 설치<br/>(install.mjs · bootstrap.sh · cli)"] --> start{"프로젝트 상태?"}
-    start -->|빈 디렉터리| boot["new-project-bootstrap<br/>Next.js 15 + TS + 인프라 스캐폴드"]
-    start -->|기존 repo| adopt["adopt.mjs — 스택 감지<br/>거버넌스 규칙 vendoring (비파괴)<br/>+ 결정론 신호"]
+
+    start -->|빈 디렉터리| grec["recommend-stack (greenfield)<br/>요구사항 → framework + 전체 스택<br/>신호: 외부 → 호환성 → 평판"]
+    grec --> scaffold["공식 create 도구<br/>(next / vite / svelte / remix / astro / expo)"]
+    scaffold --> govNew["adopt — 거버넌스 vendoring"]
+
+    start -->|기존 repo| adopt["adopt.mjs — 감지 + 거버넌스 (비파괴)<br/>+ 결정론 신호"]
     inspect["inspect = adopt --dry-run<br/>read-only 미리보기"] -.-> adopt
 
-    boot --> governed["거버넌스 적용된 프로젝트<br/>(.claude/rules + CLAUDE.md)"]
+    govNew --> governed["거버넌스 적용 프로젝트<br/>(.claude/rules + CLAUDE.md)"]
     adopt --> governed
 
     governed --> empty{"빈<br/>capability?"}
     governed --> inuse{"쓰는<br/>스택?"}
 
     subgraph t1["T1 · 어드바이저 — read-only, 리서치"]
-        rec["recommend-stack<br/>무엇을 ADD"]
+        rec["recommend-stack (existing)<br/>무엇을 ADD"]
         assess["stack-assess<br/>점수 → 판정"]
     end
     empty -->|yes| rec
@@ -80,11 +84,9 @@ flowchart TD
     gates --> secrets["setup-secrets<br/>API 키 주입 (AI에 노출 안 함)"]
 ```
 
-- **신규 프로젝트(빈 디렉터리)** → `new-project-bootstrap`이 Next.js 15 + 인프라 스캐폴드.
-- **기존 repo** → `adopt`이 매칭 거버넌스 규칙 vendoring(비파괴); `inspect`로 read-only 미리보기.
-- **빈 capability** → `recommend-stack` → `install-stack add`.
-- **쓰는 스택** → `stack-assess`(점수) → 유지 / `install-stack upgrade` / 교체.
-- **교체**는 `risk=low`(상태없음+낮은blast+테스트)일 때만 `install-stack replace`로 실행, 그 외엔 리포트만. 상태있는(db/auth/결제) 교체·데이터 마이그레이션은 실행하지 않음.
+- **신규 프로젝트(빈 디렉터리)** → `recommend-stack`(greenfield)이 요구사항 기반으로 **framework + 전체 스택** 추천(신호: 외부 → 확정 스택과의 호환성 → 평판) → 프레임워크 **공식 create 도구**로 스캐폴드 → `adopt` 거버넌스 → 선택 capability 설치(Next.js 프리셋 레시피, 또는 타 프레임워크/비-default는 `install-stack add`).
+- **기존 repo** → `adopt`이 매칭 규칙 vendoring(`inspect`로 read-only 미리보기) → 빈 capability는 `recommend-stack`, 쓰는 스택은 `stack-assess`.
+- **교체**는 `risk=low`(상태없음+낮은blast+테스트)일 때만 `install-stack replace`로 실행, 그 외 리포트만. 상태있는(db/auth/결제) 교체·데이터 마이그레이션은 실행 안 함.
 - **시크릿** → `setup-secrets`가 키를 AI에 노출하지 않고 주입.
 
 ## 사전 요구사항
@@ -377,7 +379,7 @@ claude
 새 프로젝트를 시작하고 싶어 — ...를 위한 모바일 웹 앱
 ```
 
-`new-project-bootstrap` 스킬은 `brainstorming`이 스코프를 확정한 후 활성화됩니다. 11개의 결정론적 단계를 실행하고 lint + 테스트 + 빌드 + E2E로 검증합니다.
+`new-project-bootstrap` 스킬은 `brainstorming`으로 범위가 확정되면 활성화된다. 인터뷰로 요구사항을 받아 `recommend-stack`(greenfield)으로 **framework + 전체 스택**을 추천(요구사항·스택 간 호환성 가중)하고, 프레임워크의 공식 create 도구로 스캐폴드한 뒤 거버넌스(adopt)+설치를 수행하고, lint + 테스트 + 빌드 + E2E로 검증한다. Next.js는 풍부한 프리셋, 타 프레임워크는 generic 설치 경로를 쓴다.
 
 자동 활성화가 안 되면 강제 트리거:
 ```
