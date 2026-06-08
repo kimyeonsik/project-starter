@@ -299,17 +299,34 @@ echo "## [$(date '+%Y-%m-%d %H:%M')] baseline" >> _team/bootstrap-progress.md
 
 > 주: Step 10(Git + GitHub)에도 `git init`이 있다 — 이 진행추적이 활성화되면 Step 10의 init은 중복이므로 거기선 생략하고 원격 연결/푸시만 수행한다.
 
-### Step 2: Next.js 스캐폴드
+### Step 1.6: 스택 해소 (요구사항 → 추천)
 
-```bash
-pnpm create next-app@latest . \
-  --typescript --tailwind --eslint \
-  --app --src-dir --import-alias "@/*" \
-  --use-pnpm --skip-install
-pnpm install
-```
+아직 코드가 없다(빈 디렉터리). 요구사항을 모아 **recommend-stack(greenfield)** 으로 스택을 정한다.
 
-`--skip-install` 후 명시적 `pnpm install`로 잠금 파일 안정화.
+1. 인터뷰: `{ appDesc(필수), platform(web|native|edge), region, budget, constraints }`. (brainstorming 결과가 있으면 재사용)
+2. `recommend-stack` 스킬을 **greenfield 모드**로 호출 — 채울 capability = 표준 기본셋(framework·db·auth·analytics·error-tracking·hosting·test-runner·ci) + 사용자가 원하는 추가(email·payments·ai).
+3. 추천 스택 한 벌 제시 → 사용자 **전체 수락** 또는 **항목별 조정**.
+4. 결과를 **resolved 스택**으로 확정: `{ framework, capability→stack }`. 이후 단계가 이걸 참조.
+
+> resolved.framework 가 이후 스캐폴더를, resolved의 각 capability가 설치 방식을 결정한다.
+
+### Step 2: 베이스 스캐폴드 (resolved.framework의 공식 도구)
+
+resolved.framework에 맞는 **공식 create 도구**로 베이스를 만든다(프레임워크별 스캐폴딩은 재발명하지 않음):
+
+| framework | 명령 |
+|---|---|
+| nextjs | `pnpm create next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias "@/*" --use-pnpm --skip-install` |
+| vite | `pnpm create vite@latest . --template react-ts` |
+| sveltekit | `pnpm create svelte@latest .` |
+| remix | `pnpm create remix@latest .` |
+| astro | `pnpm create astro@latest .` |
+| expo | `pnpm create expo-app@latest .` |
+
+그다음 `pnpm install`로 잠금 파일 안정화. 대화형 프롬프트가 막히면 사용자에게 안내.
+
+> **Next.js**: 아래 Step 3~7의 풍부한 프리셋(Vitest/Playwright/Sentry/Amplitude/Supabase/CI)을 그대로 사용.
+> **타 프레임워크**: Step 3~7 대신 **Step 7′(generic 설치)** 로 간다 — resolved의 각 capability를 `install-stack`(add)로 설치.
 
 ### Step 3: Vitest (유닛 테스트)
 
@@ -470,6 +487,23 @@ SERVICE=supabase node ~/.agents/skills/setup-secrets/setup-secrets.mjs
 ```
 
 `src/lib/supabase/client.ts`, `src/lib/supabase/server.ts`, `src/middleware.ts` 표준 SSR 패턴 작성. (`supabase` 스킬의 SSR 가이드 참조)
+
+> **위 Step 5~7(Sentry/Amplitude/Supabase)은 Next.js 프리셋의 기본 레시피다.** resolved에서 해당 capability가 default가 아니면(예: db=Drizzle+D1, auth=Clerk) 그 Step의 기본 레시피 대신 **Step 7′**의 install-stack 경로로 설치한다.
+
+### Step 7′: generic capability 설치 (타 프레임워크 / 비-default 선택)
+
+Next 프리셋이 다루지 않는 capability(타 프레임워크 전체, 또는 Next에서 비-default 선택)는 **`install-stack` 스킬을 `add` 모드**로 설치한다. resolved의 각 capability에 대해:
+- 해당 스택을 `install-stack`(add)로 설치(공식 문서 리서치 → 런북 → 단계 승인 → 검증). clean git 게이트는 Step 1의 git init으로 충족.
+- 표준 기본셋(test-runner·error-tracking·analytics·db·auth·ci)은 프레임워크 불문 적용(설치만 generic).
+- 설치 후 규칙 vendoring은 install-stack이 adopt 재실행으로 처리(Step 7.9와 중복 시 idempotent).
+
+### Step 7.9: adopt — 거버넌스 vendoring
+
+스택이 깔렸으니 **adopt**으로 감지된 스택에 맞는 규칙을 `./.claude/rules/`에 vendoring하고 CLAUDE.md 관리블록을 만든다(프레임워크 무관, 비파괴):
+```bash
+PROJECT_ROOT="$(pwd)" node "<adopt-existing-project 스킬 디렉터리>/engine/scripts/adopt.mjs" --lang ko
+```
+named 규칙 없는 스택(예: sveltekit, clerk)은 capability generic으로 커버되고 리포트에 "전용 규칙 권장"으로 뜬다. (이게 신규/기존 공통 거버넌스 단계)
 
 ### Step 8: 디렉토리 구조
 
