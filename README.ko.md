@@ -763,3 +763,18 @@ Select-String "BEGIN project-starter" .\CLAUDE.md -ErrorAction SilentlyContinue
 ## 라이선스
 
 [MIT](LICENSE) © 2026 kimyeonsik
+
+## 스택 라이프사이클 (계위 & 흐름)
+
+```
+T1  어드바이저 (read-only · 리서치)   "무엇을/할지 말지 결정"
+    ├─ recommend-stack : 빈 capability → 무엇을 ADD
+    └─ stack-assess    : 쓰는 스택      → 점수 → {유지 · 업그레이드 · 교체}
+T2  실행기 (코드 변경 · 게이트)
+    └─ install-stack : add │ upgrade │ replace(low만)
+보조: adopt(거버넌스+라우팅) · inspect(미리보기) · new-project-bootstrap · setup-secrets
+```
+
+- **빈 capability** → `recommend-stack` → `install-stack add`
+- **쓰는 스택** → `stack-assess`(점수) → 유지 / `install-stack upgrade` / 교체
+- **교체**는 위험 등급 게이트: `risk=low`(상태없음+낮은blast+테스트)면 `install-stack replace` 실행, 그 외엔 위험·전제조건 리포트만(실행 안 함). 상태있는(db/auth/결제) 교체·데이터 마이그레이션은 실행하지 않는다.
