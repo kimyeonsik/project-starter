@@ -6,6 +6,30 @@ adheres to [Semantic Versioning](https://semver.org/). The canonical version
 lives in `package.json` (exported as `VERSION` from `scripts/lib/registry.mjs`);
 `consistency.test.mjs` asserts the latest entry below matches it.
 
+## [0.9.0] - 2026-06-08
+
+### Added
+- **Risk-gated stack replacement.** `stack-assess` now grades migration risk
+  (state-risk × blast radius × readiness) into low/medium/high/critical. A
+  replacement runs **only when risk is low** (stateless capability + low blast +
+  tests present) via a new `install-stack` **`replace` mode** (add + call-site
+  codemod + remove old + test-parity gate, on a dedicated branch). Medium+ risk
+  is reported only — stateful (db/auth/payments) replacements and data migrations
+  are never executed.
+- **Deterministic readiness signals** (`scripts/lib/migration-readiness.mjs`):
+  capability state-risk map, `readinessSignals` (tests / CI / env separation),
+  and the `migrationRisk` grade. Surfaced as a "마이그레이션 준비도" line in the
+  adopt/inspect report.
+- **README**: stack lifecycle tiers (advisors / executor) + flow diagram.
+
+### Changed
+- Reconciled "replacement = propose-only" wording across stack-assess, install-stack,
+  adopt, and the install/assess commands to the new risk-gated policy. Fixed a stale
+  note in `/install` that still called upgrade out of scope.
+
+### Notes
+- Stateful replacement, data migration, and `stack-assess`→`assess-stack` rename remain out of scope.
+
 ## [0.8.0] - 2026-06-08
 
 ### Added
