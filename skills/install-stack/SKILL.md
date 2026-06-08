@@ -21,7 +21,7 @@ description: Guided installation of a NEW stack into an existing project for an 
 
 ## 불변 원칙 (계약 B — 절대 위반 금지)
 1. **명시적 동의 후에만** 코드 변경 시작.
-2. **깨끗한 git 위에서만**: 시작 전 `git status --porcelain` 확인. 더러우면 전용 브랜치 생성(`chore/install-<stack>`) 또는 중단. (모든 변경을 diff로 리뷰·롤백 가능하게)
+2. **깨끗한 git 위에서만**: 시작 전 `git status --porcelain` 확인. 더러우면 사용자가 **먼저 커밋/스태시**하도록 안내하고, 정리된 뒤에 진행한다. (전용 브랜치를 쓰더라도 더러운 변경분을 데려가지 않는다 — 모든 변경을 diff로 리뷰·롤백 가능하게)
 3. **단계별 승인**: 런북 각 단계마다 명령/diff를 보여주고 승인받은 뒤 실행.
 4. **검증 후 성공 주장**: 빌드/테스트가 통과해야 "완료"라고 말한다. 실패는 그대로 보고.
 5. **대상 스택에만 한정**: 무관한 코드/파일은 건드리지 않는다.
@@ -38,9 +38,8 @@ description: Guided installation of a NEW stack into an existing project for an 
 cd "<대상 repo>" && git rev-parse --is-inside-work-tree && git status --porcelain
 ```
 - git repo가 아니면 → `git init` 제안 또는 중단(롤백 불가 경고).
-- 출력이 비어있지 않으면(더러움) → 둘 중 하나:
-  - 전용 브랜치 생성: `git checkout -b chore/install-<stack>`
-  - 또는 사용자가 커밋/스태시할 때까지 중단.
+- 출력이 비어있지 않으면(더러움) → **중단**하고 사용자에게 커밋/스태시를 요청한다. 워킹트리가 깨끗해진 뒤 진행.
+- 깨끗하면(권장) 전용 브랜치를 만들어 작업: `git checkout -b chore/install-<stack>` (변경을 격리·롤백 쉽게).
 
 ### Step 3: 리서치 (필수, 추측 금지)
 이 프로젝트 맥락에 맞는 **공식 설치/셋업**을 확인한다 — 프레임워크/런타임/패키지매니저를 먼저 파악(package.json, lockfile):
@@ -59,7 +58,7 @@ cd "<대상 repo>" && git rev-parse --is-inside-work-tree && git status --porcel
 런북 **전체를 먼저 사용자에게 보여주고** 동의를 받는다.
 
 ### Step 5: 단계별 실행
-각 단계마다: 실행할 명령 또는 적용할 diff를 보여줌 → 승인 → 실행 → 결과 확인. 한 단계 실패 시 중단하고 재시도/건너뛰기/롤백(git) 중 선택.
+각 단계마다: 실행할 명령 또는 적용할 diff를 보여줌 → 승인 → 실행 → 결과 확인. 한 단계 실패 시 중단하고 재시도/건너뛰기/롤백(git) 중 선택. (건너뛰기는 선택적·비차단 단계에 한함 — 의존성 설치 등 필수 단계 실패 시엔 중단/롤백한다.)
 
 ### Step 6: 검증
 빌드/테스트를 실행한다(예: `<pm> run build`, 테스트 러너가 있으면 테스트). 통과해야 완료. 실패하면 표면화하고 수정 또는 `git restore`/브랜치 폐기로 롤백 제안. **검증 전 성공 주장 금지.**
@@ -67,7 +66,7 @@ cd "<대상 repo>" && git rev-parse --is-inside-work-tree && git status --porcel
 ### Step 7: 거버넌스 후속 (규칙 vendoring — 재사용)
 새 스택이 깔렸으니 adopt 엔진을 재실행해 그 스택의 규칙을 vendor + CLAUDE.md 갱신한다(코드 비파괴, idempotent):
 ```bash
-PROJECT_ROOT="<대상 repo 절대경로>" node "<adopt-existing-project SKILL_DIR>/engine/scripts/adopt.mjs" --lang ko
+PROJECT_ROOT="<대상 repo 절대경로>" node "<adopt-existing-project 스킬 디렉터리>/engine/scripts/adopt.mjs" --lang ko
 ```
 - 전용 규칙(`stacks/<name>.md`)이 있으면 적용됨. 없으면 capability generic으로 커버되고 리포트에 "전용 규칙 권장"으로 뜸 → 사용자에게 안내.
 
@@ -75,7 +74,7 @@ PROJECT_ROOT="<대상 repo 절대경로>" node "<adopt-existing-project SKILL_DI
 실제 키가 필요하면 `setup-secrets`/`/secrets`로 안내한다. **키를 대화에 받지 않는다.**
 
 ## 검증 체크리스트
-- [ ] 시작 전 git clean 또는 전용 브랜치
+- [ ] 시작 전 워킹트리 clean(더러우면 커밋/스태시 후), 변경은 전용 브랜치에 격리
 - [ ] `.env.local`에 자리표시자만(실키 없음)
 - [ ] 빌드/테스트 검증 통과 후에만 완료 보고
 - [ ] 대상 스택 외 무관 변경 없음
