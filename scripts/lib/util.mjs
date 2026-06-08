@@ -97,12 +97,62 @@ export function copyRecursive(src, dest) {
   fs.cpSync(src, dest, { recursive: true });
 }
 
-export function backupIfExists(target, ts) {
-  if (exists(target)) {
-    const bak = `${target}.backup-${ts}`;
-    copyRecursive(target, bak);
-    warn(`Backed up: ${target} → ${bak}`);
+// Byte-for-byte equality of two files or directory trees. Used to skip
+// re-backing-up / re-copying content that hasn't changed (idempotent re-install).
+export function pathsIdentical(a, b) {
+  if (!exists(a) || !exists(b)) return false;
+  const sa = fs.statSync(a);
+  const sb = fs.statSync(b);
+  if (sa.isFile() && sb.isFile()) {
+    return Buffer.compare(fs.readFileSync(a), fs.readFileSync(b)) === 0;
   }
+  if (sa.isDirectory() && sb.isDirectory()) {
+    const ea = fs.readdirSync(a).sort();
+    const eb = fs.readdirSync(b).sort();
+    if (ea.length !== eb.length || ea.some((n, i) => n !== eb[i])) return false;
+    return ea.every((n) => pathsIdentical(path.join(a, n), path.join(b, n)));
+  }
+  return false;
+}
+
+// True if `dest` already contains every path in `src` with identical content.
+// Unlike pathsIdentical, dest MAY have extra entries — e.g. the adopt skill gets
+// an `engine/` dir bundled in after copy, so its dest legitimately has more than
+// src. Lets the installer skip re-copying an already-up-to-date skill instead of
+// churning a fresh backup of its bundle on every run.
+export function destHasIdenticalSources(src, dest) {
+  if (!exists(src) || !exists(dest)) return false;
+  const ss = fs.statSync(src);
+  if (ss.isFile()) {
+    const sd = fs.statSync(dest);
+    return sd.isFile() && Buffer.compare(fs.readFileSync(src), fs.readFileSync(dest)) === 0;
+  }
+  if (ss.isDirectory()) {
+    if (!fs.statSync(dest).isDirectory()) return false;
+    return fs.readdirSync(src).every((n) =>
+      destHasIdenticalSources(path.join(src, n), path.join(dest, n)),
+    );
+  }
+  return false;
+}
+
+// Back up an existing path before it is overwritten. Returns the backup path,
+// or null if nothing existed. When backupRoot + baseDir are given, the copy is
+// placed OUTSIDE the install tree at <backupRoot>/<ts>/<path-relative-to-baseDir>
+// so skill/command loaders never rediscover it as a duplicate skill. Without
+// them, falls back to a legacy sibling copy (`<target>.backup-<ts>`).
+export function backupIfExists(target, ts, backupRoot, baseDir) {
+  if (!exists(target)) return null;
+  let bak;
+  if (backupRoot && baseDir) {
+    bak = path.join(backupRoot, ts, path.relative(baseDir, target));
+    fs.mkdirSync(path.dirname(bak), { recursive: true });
+  } else {
+    bak = `${target}.backup-${ts}`;
+  }
+  copyRecursive(target, bak);
+  warn(`Backed up: ${target} → ${bak}`);
+  return bak;
 }
 
 // chmod 600 equivalent. On POSIX uses fs.chmod; on Windows restricts ACLs to

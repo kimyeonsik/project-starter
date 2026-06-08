@@ -123,7 +123,14 @@ function stripManagedBlockFile(file, preExisting) {
 
 // ---------- Purge backups helper ----------
 function purgeBackups() {
-  info('Purging timestamped backups (*.backup-*)...');
+  info('Purging backups...');
+  // New out-of-scan backup store (project-starter >= 0.10): a single dir.
+  const store = path.join(CLAUDE_DIR, '.project-starter-backups');
+  if (exists(store)) {
+    rmDir(store);
+    ok(`Purged: ${store}`);
+  }
+  // Legacy in-place `<file>.backup-<TS>` siblings (installs before the store).
   const parents = [CLAUDE_DIR, RULES_DIR, path.join(RULES_DIR, 'stacks'), SKILLS_DIR];
   if (scope === 'project') parents.push(PROJECT_ROOT);
   for (const parent of parents) {

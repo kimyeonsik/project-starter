@@ -32,6 +32,16 @@ lives in `package.json` (exported as `VERSION` from `scripts/lib/registry.mjs`);
   `scripts/lib/skill-resolver.mjs`, unit-tested.
 
 ### Fixed
+- **Duplicate skills from re-running the installer.** Backups of overwritten
+  files were written in place as `<file>.backup-<TS>` siblings — inside
+  `.claude/skills/`, where the skill loader rediscovered each backup as a
+  duplicate skill (every re-install added another copy to the slash menu).
+  Backups now go to a single out-of-scan store at
+  `<.claude>/.project-starter-backups/<TS>/` (with a dir-local `.gitignore`), and
+  unchanged files are skipped entirely so an idempotent re-install creates zero
+  backups. `uninstall --purge-backups` removes the new store. New helpers
+  `pathsIdentical` / `destHasIdenticalSources` (the latter tolerates the adopt
+  skill's bundled `engine/`) are unit-tested.
 - **`vercel-react-best-practices` install path.** The skill moved from
   `vercel-labs/skills` to `vercel-labs/agent-skills` (the old repo now hosts only
   `find-skills`), which broke `WEB_SKILLS` install during bootstrap. Updated the
