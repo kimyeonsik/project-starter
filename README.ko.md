@@ -261,7 +261,8 @@ SKILL_BUNDLE=minimal   bash ...   # 외부 스킬 전부 생략
 |---|---|
 | 네트워크 불가 (`skills.sh` 핑 안 됨) | 명확한 메시지와 함께 **설치 중단**. `SKILL_BUNDLE=minimal`로 재실행해 건너뛰거나 네트워크 복구. |
 | `npx` 없음 | 중단 (Node 누락 — Node 20+ 설치). |
-| 개별 스킬이 skills.sh에서 삭제/이름변경 | 경고 + `npx skills find`에서 대안 최대 3개 출력, 나머지 스킬은 계속 설치. 실패한 스킬은 매니페스트에 `external_skill_failed:`로 기록. |
+| 개별 스킬의 repo 이동/이름변경 | 경고 후 자가 치유: `npx skills find <skill>`로 정식 새 위치(이름 정확 일치, 설치수 상위)를 조회해 복붙용 재시도 명령 출력. `SKILL_AUTOHEAL=1`로 재실행하면 자동 적용(기본 off — 상위 랭크 서드파티 코드 설치는 opt-in). 나머지 스킬은 계속 설치. |
+| 개별 스킬이 완전히 삭제됨 (매칭 없음) | 경고 + 해당 repo가 실제 제공하는 스킬 목록 출력, 계속 진행. 실패한 스킬은 매니페스트에 `external_skill_failed:`로 기록 (`find-skills` 스킬로 해소). |
 
 ### 설치 후 — 외부 스킬 관리
 

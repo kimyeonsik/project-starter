@@ -22,6 +22,15 @@ lives in `package.json` (exported as `VERSION` from `scripts/lib/registry.mjs`);
 - **Dynamic ADR/CLAUDE.md** reflecting the resolved stack (via adopt), replacing the
   fixed Supabase block.
 
+### Added
+- **Self-healing external skill installs.** When a skill's pinned repo has moved
+  or been renamed, the installer now queries `npx skills find <skill>` for the
+  canonical new home (exact name match, ranked by installs) and prints a
+  copy-paste retry command instead of just failing. Opt into automatic
+  application with `SKILL_AUTOHEAL=1` (off by default — installing top-ranked
+  third-party code is deliberately opt-in). Pure resolver in
+  `scripts/lib/skill-resolver.mjs`, unit-tested.
+
 ### Fixed
 - **`vercel-react-best-practices` install path.** The skill moved from
   `vercel-labs/skills` to `vercel-labs/agent-skills` (the old repo now hosts only
