@@ -16,6 +16,9 @@ test('CAPABILITY_STATE_RISK: stateful=high, infra=medium, stateless=low', () => 
   assert.equal(CAPABILITY_STATE_RISK.analytics, 'low');
   assert.equal(CAPABILITY_STATE_RISK['error-tracking'], 'low');
   assert.equal(CAPABILITY_STATE_RISK['test-runner'], 'low');
+  assert.equal(CAPABILITY_STATE_RISK.styling, 'low');
+  assert.equal(CAPABILITY_STATE_RISK.framework, 'low');
+  assert.equal(CAPABILITY_STATE_RISK.ai, 'low');
 });
 
 test('stateRiskOf: known → mapped, unknown → high (conservative)', () => {
@@ -37,6 +40,7 @@ test('migrationRisk: stateful never low; stateful + no tests → critical', () =
   assert.equal(migrationRisk({ stateRisk: 'high', blast: 'low', readiness: tests }), 'high');
   assert.equal(migrationRisk({ stateRisk: 'high', blast: 'high', readiness: tests }), 'critical');
   assert.equal(migrationRisk({ stateRisk: 'high', blast: 'low', readiness: { hasTests: false } }), 'critical');
+  assert.equal(migrationRisk({ stateRisk: 'high', blast: 'medium', readiness: tests }), 'high');
   assert.equal(migrationRisk({ stateRisk: 'medium', blast: 'low', readiness: tests }), 'medium');
 });
 

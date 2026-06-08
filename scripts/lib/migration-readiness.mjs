@@ -27,6 +27,7 @@ const bump = (l, n) => LEVELS[Math.min(idx(l) + n, LEVELS.length - 1)];
 export function migrationRisk({ stateRisk, blast, readiness = {} }) {
   const hasTests = !!readiness.hasTests;
   let level = LEVELS.includes(stateRisk) ? stateRisk : 'high';
+  // blast=medium 은 stateRisk 에 이미 반영된 것으로 간주(v1 단순화); high 만 추가 가중.
   if (blast === 'high') level = bump(level, 1);          // 영향 크면 가중
   if (!hasTests) level = atLeast(level, 'medium');        // 패리티 검증 불가
   if (stateRisk === 'high' && !hasTests) level = 'critical'; // 상태있음 + 안전망 없음
@@ -45,6 +46,7 @@ const TEST_FILE = /(\.test\.|\.spec\.)[a-z]+$|(^|\/)__tests__\//;
 function readAllDeps(repoDir) {
   try {
     const pkg = JSON.parse(fs.readFileSync(path.join(repoDir, 'package.json'), 'utf8'));
+    // deps + devDeps 만 본다 (peerDependencies 는 v1 제외).
     return { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
   } catch {
     return {};
