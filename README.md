@@ -764,3 +764,18 @@ Issues and PRs welcome. This is a personal infra toolkit so the maintainer may i
 ## License
 
 [MIT](LICENSE) © 2026 kimyeonsik
+
+## Stack lifecycle (tiers & flow)
+
+```
+T1  Advisors (read-only, research)   "decide what / whether"
+    ├─ recommend-stack : empty capability → what to ADD
+    └─ stack-assess    : in-use stack     → score → {keep · upgrade · replace}
+T2  Executor (changes code, gated)
+    └─ install-stack : add │ upgrade │ replace (low-risk only)
+Support: adopt (governance + routing) · inspect (preview) · new-project-bootstrap · setup-secrets
+```
+
+- **Empty capability** → `recommend-stack` → `install-stack add`
+- **In-use stack** → `stack-assess` (score) → keep / `install-stack upgrade` / replace
+- **Replacement** is risk-gated: if `risk=low` (stateless + low blast + has tests) it runs via `install-stack replace`; otherwise it is reported only (never executed). Stateful (db/auth/payments) replacements and data migrations are never executed.
