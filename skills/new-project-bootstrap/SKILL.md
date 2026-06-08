@@ -1,6 +1,6 @@
 ---
 name: new-project-bootstrap
-description: Bootstrap a new Next.js + TypeScript + pnpm web project with Sentry, Amplitude, Supabase Auth, Vitest, Playwright, and GitHub Actions CI pre-configured. Use when the user wants to start a new web project from scratch and needs standardized infrastructure (analytics, crash reporting, testing, CI). Triggers after `superpowers:brainstorming` confirms project scope.
+description: Bootstrap a new project. Recommends a stack from the user's requirements (framework + db/auth/analytics/error-tracking/hosting/…) via recommend-stack (greenfield), scaffolds with the framework's official create tool, then applies governance (adopt) and installs capabilities. Next.js has a rich built-in preset; other frameworks (Vite/SvelteKit/Remix/Astro/Expo) use the generic install path. Use when starting a new project from scratch. Triggers after `superpowers:brainstorming` confirms project scope.
 ---
 
 # New Project Bootstrap
@@ -49,7 +49,8 @@ description: Bootstrap a new Next.js + TypeScript + pnpm web project with Sentry
 | 프로젝트 이름 (디렉토리명) | 현재 디렉토리명 | 변경 원하면 사용자 입력 |
 | 앱 설명 (1~2줄) | — | **필수 입력** |
 | GitHub 레포 생성 | yes (private) | 거절 시 로컬만 |
-| Supabase 프로젝트 생성 | yes (MCP로 자동) | 기존 프로젝트 연결 가능 |
+| **스택 해소** | recommend-stack(greenfield) 추천 수락 | framework·db·auth·analytics 등 항목별 조정 가능 (Step 1.6) |
+| 외부 프로젝트 생성(Supabase/Sentry 등) | yes (해당 스택 선택 시, MCP/위저드 자동) | 거절 시 SDK/설정만 |
 | Sentry 프로젝트 생성 | yes | 거절 시 SDK만 설치 |
 | Amplitude API key | 사용자 입력 또는 placeholder | 나중 주입 가능 |
 
