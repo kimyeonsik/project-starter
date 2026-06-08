@@ -22,6 +22,12 @@ lives in `package.json` (exported as `VERSION` from `scripts/lib/registry.mjs`);
 - **Dynamic ADR/CLAUDE.md** reflecting the resolved stack (via adopt), replacing the
   fixed Supabase block.
 
+### Fixed
+- **`vercel-react-best-practices` install path.** The skill moved from
+  `vercel-labs/skills` to `vercel-labs/agent-skills` (the old repo now hosts only
+  `find-skills`), which broke `WEB_SKILLS` install during bootstrap. Updated the
+  registry SSOT and the README skill tables to the new `owner/repo`.
+
 ### Notes
 - Framework choice applies to new projects; existing projects were already
   framework-agnostic via adopt's generic capability rules. Non-Next frameworks use
