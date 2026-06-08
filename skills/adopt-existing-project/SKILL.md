@@ -59,6 +59,18 @@ PROJECT_ROOT="<대상 repo 절대경로>" node "<SKILL_DIR>/engine/scripts/adopt
 
 > 계약 분리: Step 1~4(거버넌스)는 코드 비파괴. Step 4.5의 설치는 동의 후에만, install-stack의 게이트 하에서만.
 
+### Step 4.6: 기존 스택 적절성 게이트
+리포트의 **"기존 스택 (적절성 점검 후보)"** 표가 있으면, 원하면 점수화 평가를 제안한다:
+
+> "기존 스택을 점수화 평가(보안·유지보수·버전·적합성)해 업그레이드/교체 후보를 가려볼까요?"
+
+- **동의** → `stack-assess` 스킬로 평가 → 판정별:
+  - **upgrade** → 동의 시 `install-stack`(`upgrade` 모드)으로 실행(계약 B 게이트).
+  - **replace-propose** → **실행 안 함.** 대안 + 영향범위 + 마이그레이션 개요만 리포트.
+- **거절** → 평가 없이 종료.
+
+> 평가(stack-assess)는 read-only다. 코드 변경은 upgrade 동의 후 install-stack 게이트 하에서만.
+
 ## 검증 체크리스트
 - [ ] 소스 코드 `git diff` 0줄 (`.claude/`·`CLAUDE.md` 외 변경 없음)
 - [ ] `./.claude/rules/` 에 규칙 존재, `@~/` 미포함

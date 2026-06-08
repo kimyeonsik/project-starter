@@ -14,7 +14,7 @@ import path from 'node:path';
 import { copyRecursive } from './util.mjs';
 
 // adopt.mjs 가 import 하는 lib 파일들 (이게 곧 엔진 의존성 목록).
-const ENGINE_LIB = ['stack-detect.mjs', 'gap-analysis.mjs', 'vendor.mjs', 'util.mjs', 'registry.mjs'];
+const ENGINE_LIB = ['stack-detect.mjs', 'gap-analysis.mjs', 'stack-signals.mjs', 'vendor.mjs', 'util.mjs', 'registry.mjs'];
 
 // repoDir 의 엔진을 <skillsDir>/adopt-existing-project/engine 으로 번들. 깨끗이 재빌드한다.
 // adopt 스킬이 없으면 (false) 반환.

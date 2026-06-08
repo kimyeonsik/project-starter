@@ -6,6 +6,25 @@ adheres to [Semantic Versioning](https://semver.org/). The canonical version
 lives in `package.json` (exported as `VERSION` from `scripts/lib/registry.mjs`);
 `consistency.test.mjs` asserts the latest entry below matches it.
 
+## [0.8.0] - 2026-06-08
+
+### Added
+- **Existing-stack assessment (`stack-assess` skill + `/assess`).** Scores the
+  in-use stacks (security, maintenance, version staleness, profile fit) via
+  research, weighted, threshold-flagged (<60). For below-threshold stacks it
+  recommends an UPGRADE (same stack, newer version — executable via install-stack)
+  or proposes a REPLACEMENT (different stack — propose-only: alternative +
+  blast-radius + migration outline, never executed this cycle).
+- **Deterministic in-use signals** (`scripts/lib/stack-signals.mjs`, token-free):
+  installed version, usage count, and blast radius (low/medium/high) per detected
+  stack — surfaced in the adopt/inspect report's new "기존 스택" section. Feeds
+  stack-assess.
+- **install-stack gains an `upgrade` mode** (add | upgrade share one guided engine).
+- **adopt now offers an in-use assessment gate** (Step 4.6) after the empty-capability gate.
+
+### Notes
+- Replacing an in-use stack with a different one remains propose-only (execution is a separate cycle).
+
 ## [0.7.0] - 2026-06-08
 
 ### Added
