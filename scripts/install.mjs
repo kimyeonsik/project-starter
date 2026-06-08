@@ -25,6 +25,8 @@ import {
   exists,
   copyRecursive,
   backupIfExists,
+  pathsIdentical,
+  destHasIdenticalSources,
   chmodSecret,
   chmodExecAll,
   stripManagedBlock,
@@ -138,6 +140,25 @@ if (scope === 'global') {
 }
 
 const MANIFEST = path.join(CLAUDE_DIR, '.project-starter-manifest');
+
+// Backups of overwritten files go to a single OUT-OF-SCAN store, mirroring the
+// path relative to a base that contains every install target (HOME for global,
+// the project root for project scope — SKILLS_DIR sits under ~/.agents in
+// global, outside ~/.claude). Keeping backups here (not as `<file>.backup-TS`
+// siblings) stops the skill/command loader from rediscovering them as duplicate
+// skills. A dir-local .gitignore keeps snapshots out of commits.
+const BACKUP_BASE = scope === 'global' ? HOME : (env.PROJECT_ROOT || process.cwd());
+const BACKUP_ROOT = path.join(CLAUDE_DIR, '.project-starter-backups');
+let backupRootReady = false;
+function backupBeforeOverwrite(target) {
+  if (!exists(target)) return null;
+  if (!backupRootReady) {
+    fs.mkdirSync(BACKUP_ROOT, { recursive: true });
+    fs.writeFileSync(path.join(BACKUP_ROOT, '.gitignore'), '*\n');
+    backupRootReady = true;
+  }
+  return backupIfExists(target, TS, BACKUP_ROOT, BACKUP_BASE);
+}
 
 // Capture original CLAUDE.md existence — only on the very first install.
 // Subsequent re-installs preserve the value from the existing manifest.
@@ -301,16 +322,19 @@ fs.mkdirSync(path.join(RULES_DIR, 'stacks'), { recursive: true });
 for (const f of CORE_RULES) {
   const src = path.join(REPO_DIR, 'claude-rules', lang, f);
   const dest = path.join(RULES_DIR, f);
-  backupIfExists(dest, TS);
+  if (pathsIdentical(src, dest)) continue; // unchanged → no backup churn
+  backupBeforeOverwrite(dest);
   fs.copyFileSync(src, dest);
 }
 
 const stacksDir = path.join(REPO_DIR, 'claude-rules', 'stacks');
 const stackFiles = fs.readdirSync(stacksDir).filter((f) => f.endsWith('.md'));
 for (const fname of stackFiles) {
+  const src = path.join(stacksDir, fname);
   const dest = path.join(RULES_DIR, 'stacks', fname);
-  backupIfExists(dest, TS);
-  fs.copyFileSync(path.join(stacksDir, fname), dest);
+  if (pathsIdentical(src, dest)) continue; // unchanged → no backup churn
+  backupBeforeOverwrite(dest);
+  fs.copyFileSync(src, dest);
 }
 ok('Rules installed');
 
@@ -324,16 +348,20 @@ if (projectScopeRewrite) {
 const block = wrapManagedBlock(templateBody);
 
 if (exists(CLAUDE_MD)) {
-  backupIfExists(CLAUDE_MD, TS);
-  let content = fs.readFileSync(CLAUDE_MD, 'utf8');
-  if (hasManagedBlock(content)) {
-    content = stripManagedBlock(content);
-    info('Removed previous managed block(s) for clean re-install');
-  }
+  const original = fs.readFileSync(CLAUDE_MD, 'utf8');
+  let content = original;
+  const hadBlock = hasManagedBlock(content);
+  if (hadBlock) content = stripManagedBlock(content);
   content = content.replace(/\n+$/, '');
   const merged = content.length ? `${content}\n\n${block}` : block;
-  fs.writeFileSync(CLAUDE_MD, merged);
-  ok('Managed block written to existing CLAUDE.md');
+  if (merged !== original) {
+    backupBeforeOverwrite(CLAUDE_MD); // only snapshot when content actually changes
+    if (hadBlock) info('Removed previous managed block(s) for clean re-install');
+    fs.writeFileSync(CLAUDE_MD, merged);
+    ok('Managed block written to existing CLAUDE.md');
+  } else {
+    ok('CLAUDE.md already up to date');
+  }
 } else {
   fs.mkdirSync(path.dirname(CLAUDE_MD), { recursive: true });
   fs.writeFileSync(CLAUDE_MD, block);
@@ -349,11 +377,17 @@ const skillsSrc = path.join(REPO_DIR, 'skills');
 for (const entry of fs.readdirSync(skillsSrc, { withFileTypes: true })) {
   if (!entry.isDirectory()) continue;
   const skillName = entry.name;
+  const src = path.join(skillsSrc, skillName);
   const dest = path.join(SKILLS_DIR, skillName);
-  backupIfExists(dest, TS);
-  copyRecursive(path.join(skillsSrc, skillName), dest);
-  chmodExecAll(dest); // make any shipped .sh executable (POSIX only)
-  installedSkillDirs.push(dest);
+  // destHasIdenticalSources (not pathsIdentical): the adopt skill gets an engine/
+  // dir bundled into dest after copy, so dest legitimately has extra files — we
+  // only re-copy when a SOURCE file actually changed, avoiding bundle churn.
+  if (!destHasIdenticalSources(src, dest)) {
+    backupBeforeOverwrite(dest);
+    copyRecursive(src, dest);
+    chmodExecAll(dest); // make any shipped .sh executable (POSIX only)
+  }
+  installedSkillDirs.push(dest); // always record for the manifest
   ok(`Skill installed: ${skillName}`);
 }
 
@@ -370,10 +404,13 @@ const commandsSrc = path.join(REPO_DIR, 'commands');
 if (exists(commandsSrc)) {
   fs.mkdirSync(COMMANDS_DIR, { recursive: true });
   for (const f of fs.readdirSync(commandsSrc).filter((x) => x.endsWith('.md'))) {
+    const src = path.join(commandsSrc, f);
     const dest = path.join(COMMANDS_DIR, f);
-    backupIfExists(dest, TS);
-    fs.copyFileSync(path.join(commandsSrc, f), dest);
-    installedCommandFiles.push(dest);
+    if (!pathsIdentical(src, dest)) { // unchanged → no backup churn
+      backupBeforeOverwrite(dest);
+      fs.copyFileSync(src, dest);
+    }
+    installedCommandFiles.push(dest); // always record for the manifest
   }
   ok(`Installed ${installedCommandFiles.length} slash command(s) to ${COMMANDS_DIR}`);
 }
@@ -434,7 +471,6 @@ let settingsTouched = false;
     }
   }
   if (parseOk) {
-    if (settingsOnDisk) backupIfExists(SETTINGS, TS);
     if (typeof settings.permissions !== 'object' || settings.permissions === null) {
       settings.permissions = {};
     }
@@ -452,9 +488,14 @@ let settingsTouched = false;
     settingsDenyOwned = Array.from(new Set([...priorOwned, ...newlyAdded])).filter((r) =>
       SECRET_DENY.includes(r)
     );
-    fs.mkdirSync(path.dirname(SETTINGS), { recursive: true });
-    fs.writeFileSync(SETTINGS, JSON.stringify(settings, null, 2) + '\n');
-    settingsTouched = true;
+    settingsTouched = true; // we manage these rules; record ownership in the manifest
+    // Only back up + rewrite when something actually changes (new rules, or first
+    // install creating the file) — avoids churning a settings backup every run.
+    if (newlyAdded.length || !settingsOnDisk) {
+      if (settingsOnDisk) backupBeforeOverwrite(SETTINGS);
+      fs.mkdirSync(path.dirname(SETTINGS), { recursive: true });
+      fs.writeFileSync(SETTINGS, JSON.stringify(settings, null, 2) + '\n');
+    }
     if (newlyAdded.length) ok(`Added ${newlyAdded.length} secret-file deny rule(s) to settings.json`);
     else ok('Secret-file deny rules already present');
   }
