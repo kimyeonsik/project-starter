@@ -38,19 +38,25 @@ project-starter는 두 가지 진입점을 제공합니다. 상황에 맞는 쪽
 
 ## 스택 라이프사이클
 
-두 층: **어드바이저**가 결정(read-only·리서치), **실행기**가 코드 변경(게이트). 교체는 위험 등급 게이트 — 안전이 입증된(low) 교체만 실행하고, 상태있거나 검증 불가한 건 리포트만(실행 안 함).
+전체 흐름 — 툴킷 설치, **두 진입경로**(신규 프로젝트 vs 기존 repo), 그다음 capability 라이프사이클: **어드바이저**가 결정(read-only·리서치), **실행기**가 코드 변경(게이트). 교체는 위험 등급 게이트 — 안전이 입증된(low) 교체만 실행하고, 상태있거나 검증 불가한 건 리포트만(실행 안 함).
 
 ```mermaid
 flowchart TD
-    repo["대상 repo"] --> adopt["adopt.mjs — 감지 + 거버넌스 (AI 없음)<br/>결정론 신호 산출"]
-    adopt --> empty{"빈<br/>capability?"}
-    adopt --> inuse{"쓰는<br/>스택?"}
+    install["project-starter 툴킷 설치<br/>(install.mjs · bootstrap.sh · cli)"] --> start{"프로젝트 상태?"}
+    start -->|빈 디렉터리| boot["new-project-bootstrap<br/>Next.js 15 + TS + 인프라 스캐폴드"]
+    start -->|기존 repo| adopt["adopt.mjs — 스택 감지<br/>거버넌스 규칙 vendoring (비파괴)<br/>+ 결정론 신호"]
+    inspect["inspect = adopt --dry-run<br/>read-only 미리보기"] -.-> adopt
+
+    boot --> governed["거버넌스 적용된 프로젝트<br/>(.claude/rules + CLAUDE.md)"]
+    adopt --> governed
+
+    governed --> empty{"빈<br/>capability?"}
+    governed --> inuse{"쓰는<br/>스택?"}
 
     subgraph t1["T1 · 어드바이저 — read-only, 리서치"]
         rec["recommend-stack<br/>무엇을 ADD"]
         assess["stack-assess<br/>점수 → 판정"]
     end
-
     empty -->|yes| rec
     inuse -->|yes| assess
 
@@ -59,7 +65,6 @@ flowchart TD
     assess --> repl{"교체 —<br/>migrationRisk?"}
     repl -->|"low<br/>상태없음 + 낮은blast + 테스트"| m_replace
     repl -->|"medium+<br/>상태있음 / 큰blast / 무테스트"| report["리포트만<br/>위험 + 전제조건<br/>(실행 안 함)"]
-
     rec -->|사용자 선택| m_add
     upgrade --> m_upgrade
 
@@ -68,16 +73,19 @@ flowchart TD
         m_upgrade["install-stack: upgrade"]
         m_replace["install-stack: replace<br/>add + 호출부 codemod + 구스택 제거"]
     end
-
     m_add --> gates
     m_upgrade --> gates
     m_replace --> gates
-    gates["게이트: clean git/브랜치 · 단계 승인<br/>빌드/테스트 패리티 · 시크릿 안전 · 대상 한정"] --> vendor["adopt 재실행<br/>→ 규칙 vendoring"]
+    gates["게이트: clean git/브랜치 · 단계 승인<br/>빌드/테스트 패리티 · 대상 한정"] --> vendor["adopt 재실행 → 규칙 vendoring"]
+    gates --> secrets["setup-secrets<br/>API 키 주입 (AI에 노출 안 함)"]
 ```
 
-- **빈 capability** → `recommend-stack` → `install-stack add`
-- **쓰는 스택** → `stack-assess`(점수) → 유지 / `install-stack upgrade` / 교체
+- **신규 프로젝트(빈 디렉터리)** → `new-project-bootstrap`이 Next.js 15 + 인프라 스캐폴드.
+- **기존 repo** → `adopt`이 매칭 거버넌스 규칙 vendoring(비파괴); `inspect`로 read-only 미리보기.
+- **빈 capability** → `recommend-stack` → `install-stack add`.
+- **쓰는 스택** → `stack-assess`(점수) → 유지 / `install-stack upgrade` / 교체.
 - **교체**는 `risk=low`(상태없음+낮은blast+테스트)일 때만 `install-stack replace`로 실행, 그 외엔 리포트만. 상태있는(db/auth/결제) 교체·데이터 마이그레이션은 실행하지 않음.
+- **시크릿** → `setup-secrets`가 키를 AI에 노출하지 않고 주입.
 
 ## 사전 요구사항
 

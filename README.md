@@ -38,19 +38,25 @@ Both paths first install project-starter's rules and skills (see **Install**). T
 
 ## Stack lifecycle
 
-Two tiers: **advisors** decide (read-only, research), the **executor** changes code (gated). Replacement is risk-gated — only a provably-safe (low-risk) swap is executed; anything stateful or unverifiable is reported, never run.
+The full flow — install the toolkit, enter via **either path** (new project or existing repo), then run the capability lifecycle: **advisors** decide (read-only, research) and the **executor** changes code (gated). Replacement is risk-gated — only a provably-safe (low-risk) swap runs; anything stateful or unverifiable is reported, never executed.
 
 ```mermaid
 flowchart TD
-    repo["target repo"] --> adopt["adopt.mjs — detect + governance (no AI)<br/>emits deterministic signals"]
-    adopt --> empty{"empty<br/>capability?"}
-    adopt --> inuse{"in-use<br/>stack?"}
+    install["install project-starter toolkit<br/>(install.mjs · bootstrap.sh · cli)"] --> start{"project state?"}
+    start -->|empty dir| boot["new-project-bootstrap<br/>scaffold Next.js 15 + TS + infra"]
+    start -->|existing repo| adopt["adopt.mjs — detect stacks<br/>vendor governance rules (non-destructive)<br/>+ deterministic signals"]
+    inspect["inspect = adopt --dry-run<br/>read-only preview"] -.-> adopt
+
+    boot --> governed["governed project<br/>(.claude/rules + CLAUDE.md)"]
+    adopt --> governed
+
+    governed --> empty{"empty<br/>capability?"}
+    governed --> inuse{"in-use<br/>stack?"}
 
     subgraph t1["Tier 1 · Advisors — read-only, research"]
         rec["recommend-stack<br/>what to ADD"]
         assess["stack-assess<br/>score → verdict"]
     end
-
     empty -->|yes| rec
     inuse -->|yes| assess
 
@@ -59,7 +65,6 @@ flowchart TD
     assess --> repl{"replace —<br/>migrationRisk?"}
     repl -->|"low<br/>stateless + low blast + tests"| m_replace
     repl -->|"medium+<br/>stateful / big blast / no tests"| report["report only<br/>risk + preconditions<br/>(never executed)"]
-
     rec -->|user picks| m_add
     upgrade --> m_upgrade
 
@@ -68,16 +73,19 @@ flowchart TD
         m_upgrade["install-stack: upgrade"]
         m_replace["install-stack: replace<br/>add + codemod + remove old"]
     end
-
     m_add --> gates
     m_upgrade --> gates
     m_replace --> gates
-    gates["gates: clean git/branch · step approval<br/>build/test parity · secrets-safe · scoped"] --> vendor["adopt re-run<br/>→ vendor rules"]
+    gates["gates: clean git/branch · step approval<br/>build/test parity · scoped"] --> vendor["adopt re-run → vendor rules"]
+    gates --> secrets["setup-secrets<br/>inject API keys (never shown to AI)"]
 ```
 
-- **Empty capability** → `recommend-stack` → `install-stack add`
-- **In-use stack** → `stack-assess` (score) → keep / `install-stack upgrade` / replace
-- **Replacement** runs via `install-stack replace` only when `risk=low` (stateless + low blast + tests present); otherwise it is reported only. Stateful (db/auth/payments) replacements and data migrations are never executed.
+- **New project (empty dir)** → `new-project-bootstrap` scaffolds Next.js 15 + infra.
+- **Existing repo** → `adopt` vendors matching governance rules (non-destructive); `inspect` previews it read-only.
+- **Empty capability** → `recommend-stack` → `install-stack add`.
+- **In-use stack** → `stack-assess` (score) → keep / `install-stack upgrade` / replace.
+- **Replacement** runs via `install-stack replace` only when `risk=low` (stateless + low blast + tests); otherwise reported only. Stateful (db/auth/payments) replacements and data migrations are never executed.
+- **Secrets** → `setup-secrets` injects keys without exposing them to the AI.
 
 ## Prerequisites
 
