@@ -1,0 +1,82 @@
+---
+name: install-stack
+description: Guided installation of a NEW stack into an existing project for an empty capability (analytics, error-tracking, auth, payments, email, database, test-runner, ai, hosting). Researches the official setup for THIS project's framework, synthesizes an install runbook, and executes it step-by-step with approval — then vendors the matching governance rule. Use after recommend-stack picks a tool, or when the user says "install X", "set up X", "add X to the project". This DOES modify code (deps/config/env) under strict gates. Do NOT use to replace or upgrade a stack already in use (that is out of scope this cycle).
+---
+
+# Install Stack (guided, add)
+
+빈 capability에 **새 스택을 실제로 도입(설치)** 한다. recommend-stack이 "어떤 걸"을 정했다면, 이 스킬이 "어떻게"를 가이드 실행으로 수행한다.
+
+이건 거버넌스(adopt)와 **계약이 다르다**: 코드(의존성·설정·env)를 **바꾼다.** 그래서 아래 게이트를 모두 통과해야 한다.
+
+## When to Use
+- recommend-stack 추천에서 사용자가 스택을 고른 직후 (핸드오프)
+- "X 설치해줘 / 셋업해줘 / 프로젝트에 X 붙여줘"
+- adopt의 대화형 게이트에서 "설치 진행" 동의 시
+
+## When NOT to Use
+- **이미 쓰는 스택의 교체/업그레이드** → 이번 사이클 범위 밖 (제안만). 사용자에게 안내하고 중단.
+- 빈 디렉토리 신규 프로젝트 → `new-project-bootstrap`
+- 사용자가 "코드 건드리지 마" 명시
+
+## 불변 원칙 (계약 B — 절대 위반 금지)
+1. **명시적 동의 후에만** 코드 변경 시작.
+2. **깨끗한 git 위에서만**: 시작 전 `git status --porcelain` 확인. 더러우면 전용 브랜치 생성(`chore/install-<stack>`) 또는 중단. (모든 변경을 diff로 리뷰·롤백 가능하게)
+3. **단계별 승인**: 런북 각 단계마다 명령/diff를 보여주고 승인받은 뒤 실행.
+4. **검증 후 성공 주장**: 빌드/테스트가 통과해야 "완료"라고 말한다. 실패는 그대로 보고.
+5. **대상 스택에만 한정**: 무관한 코드/파일은 건드리지 않는다.
+6. **시크릿 비노출**: 실제 키를 대화에 받지 않는다. `.env.local`엔 **자리표시자만**, 진짜 키는 `setup-secrets`/`/secrets`로 유도.
+
+## 절차
+
+### Step 1: 입력 확정
+- 대상 스택(이름), capability, 대상 repo 경로(기본 cwd)를 확정한다.
+- 이미 그 capability를 쓰고 있으면 (교체/업그레이드) → **중단**하고 "이번 범위 밖(제안만)"임을 안내.
+
+### Step 2: 안전 전제 (git)
+```bash
+cd "<대상 repo>" && git rev-parse --is-inside-work-tree && git status --porcelain
+```
+- git repo가 아니면 → `git init` 제안 또는 중단(롤백 불가 경고).
+- 출력이 비어있지 않으면(더러움) → 둘 중 하나:
+  - 전용 브랜치 생성: `git checkout -b chore/install-<stack>`
+  - 또는 사용자가 커밋/스태시할 때까지 중단.
+
+### Step 3: 리서치 (필수, 추측 금지)
+이 프로젝트 맥락에 맞는 **공식 설치/셋업**을 확인한다 — 프레임워크/런타임/패키지매니저를 먼저 파악(package.json, lockfile):
+- `claude.ai Context7` MCP 또는 WebSearch로 **현행 공식 문서**의 설치 명령·설정 파일·init 코드·필요한 env·검증 방법을 수집.
+- 버전·API는 모델 지식이 아니라 **리서치 결과**를 신뢰한다(바뀜).
+- 불확실하면 추측하지 말고 사용자에게 문서/버전을 확인.
+
+### Step 4: 런북 합성 → 프리뷰
+수집한 정보로 순서 있는 런북을 만든다:
+1. 의존성 설치 (해당 repo의 패키지매니저로)
+2. `.env.local`에 필요한 env **자리표시자** 추가 (예: `RESEND_API_KEY=__SET_ME__`)
+3. 설정/provider/init 코드 (공식 문서 기준)
+4. 앱에 배선 (프레임워크 관례 따라)
+5. 검증 단계 (빌드/테스트/스모크)
+
+런북 **전체를 먼저 사용자에게 보여주고** 동의를 받는다.
+
+### Step 5: 단계별 실행
+각 단계마다: 실행할 명령 또는 적용할 diff를 보여줌 → 승인 → 실행 → 결과 확인. 한 단계 실패 시 중단하고 재시도/건너뛰기/롤백(git) 중 선택.
+
+### Step 6: 검증
+빌드/테스트를 실행한다(예: `<pm> run build`, 테스트 러너가 있으면 테스트). 통과해야 완료. 실패하면 표면화하고 수정 또는 `git restore`/브랜치 폐기로 롤백 제안. **검증 전 성공 주장 금지.**
+
+### Step 7: 거버넌스 후속 (규칙 vendoring — 재사용)
+새 스택이 깔렸으니 adopt 엔진을 재실행해 그 스택의 규칙을 vendor + CLAUDE.md 갱신한다(코드 비파괴, idempotent):
+```bash
+PROJECT_ROOT="<대상 repo 절대경로>" node "<adopt-existing-project SKILL_DIR>/engine/scripts/adopt.mjs" --lang ko
+```
+- 전용 규칙(`stacks/<name>.md`)이 있으면 적용됨. 없으면 capability generic으로 커버되고 리포트에 "전용 규칙 권장"으로 뜸 → 사용자에게 안내.
+
+### Step 8: 시크릿 마무리
+실제 키가 필요하면 `setup-secrets`/`/secrets`로 안내한다. **키를 대화에 받지 않는다.**
+
+## 검증 체크리스트
+- [ ] 시작 전 git clean 또는 전용 브랜치
+- [ ] `.env.local`에 자리표시자만(실키 없음)
+- [ ] 빌드/테스트 검증 통과 후에만 완료 보고
+- [ ] 대상 스택 외 무관 변경 없음
+- [ ] 규칙 vendor + CLAUDE.md 갱신됨 (adopt 재실행)
