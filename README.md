@@ -13,7 +13,7 @@ Designed to replicate a consistent dev environment across machines in one comman
 - **Core rules** (`.claude/rules/`): language policy, Agent Teams workflow, skill auto-activation, git workflow (branching/commits/PR), ADR discipline, security baseline.
 - **Stack rules**: **named** stacks (Next.js, Supabase, Drizzle, D1, Vercel, Cloudflare, Playwright, Vitest, Claude API, Sentry, Amplitude, Tailwind + shadcn/ui, Resend, GitHub Actions) **plus generic capability rules** (framework, database, auth, payments, hosting, email, ai, …) that cover any stack without a named rule.
 - **Skills** (`.claude/skills/` or `~/.agents/skills/`):
-  - `new-project-bootstrap` — one-prompt new project (Next.js 15 + TypeScript + infra)
+  - `new-project-bootstrap` — requirement-driven new project: recommends framework + stack, scaffolds via the official create tool (Next/Vite/SvelteKit/Remix/Astro/Expo), then adopt + install
   - `adopt-existing-project` / `inspect-project` — apply governance to an existing repo (non-destructive) / read-only preview
   - `recommend-stack` / `stack-assess` — advise what to ADD for empty capabilities / score in-use stacks
   - `install-stack` — execute **add · upgrade · replace** (code changes, gated)
@@ -28,12 +28,12 @@ project-starter serves two entry points. Pick the one that matches your situatio
 
 | You have... | Path | What happens |
 |---|---|---|
-| an **empty directory** (from scratch) | **New project — bootstrap** | the `new-project-bootstrap` skill scaffolds Next.js 15 + infra in 11 deterministic steps |
+| an **empty directory** (from scratch) | **New project — bootstrap** | `new-project-bootstrap` recommends a stack from your requirements (framework + db/auth/…), scaffolds with the framework's **official create tool**, then applies governance (adopt) + installs the stack |
 | a **repo that already has code** | **Existing project — adopt** | the `adopt-existing-project` skill detects the in-use stack and vendors only the matching rules — **it never touches your source** |
 
 Both paths first install project-starter's rules and skills (see **Install**). Then:
 
-- **New** → start a Claude session in the empty dir and trigger the bootstrap (see *New project — bootstrap*).
+- **New** → start a Claude session in the empty dir and trigger the bootstrap; it interviews you, recommends a stack (framework included), and builds it (see *New project — bootstrap*).
 - **Existing** → in the repo, ask Claude to adopt project-starter (the *adopt-existing-project* skill).
 
 ## Stack lifecycle
@@ -43,18 +43,22 @@ The full flow — install the toolkit, enter via **either path** (new project or
 ```mermaid
 flowchart TD
     install["install project-starter toolkit<br/>(install.mjs · bootstrap.sh · cli)"] --> start{"project state?"}
-    start -->|empty dir| boot["new-project-bootstrap<br/>scaffold Next.js 15 + TS + infra"]
-    start -->|existing repo| adopt["adopt.mjs — detect stacks<br/>vendor governance rules (non-destructive)<br/>+ deterministic signals"]
+
+    start -->|empty dir| grec["recommend-stack (greenfield)<br/>requirements → framework + whole stack<br/>signals: external → compatibility → reputation"]
+    grec --> scaffold["official create tool<br/>(next / vite / svelte / remix / astro / expo)"]
+    scaffold --> govNew["adopt — governance vendoring"]
+
+    start -->|existing repo| adopt["adopt.mjs — detect + governance (non-destructive)<br/>+ deterministic signals"]
     inspect["inspect = adopt --dry-run<br/>read-only preview"] -.-> adopt
 
-    boot --> governed["governed project<br/>(.claude/rules + CLAUDE.md)"]
+    govNew --> governed["governed project<br/>(.claude/rules + CLAUDE.md)"]
     adopt --> governed
 
     governed --> empty{"empty<br/>capability?"}
     governed --> inuse{"in-use<br/>stack?"}
 
     subgraph t1["Tier 1 · Advisors — read-only, research"]
-        rec["recommend-stack<br/>what to ADD"]
+        rec["recommend-stack (existing)<br/>what to ADD"]
         assess["stack-assess<br/>score → verdict"]
     end
     empty -->|yes| rec
@@ -80,10 +84,8 @@ flowchart TD
     gates --> secrets["setup-secrets<br/>inject API keys (never shown to AI)"]
 ```
 
-- **New project (empty dir)** → `new-project-bootstrap` scaffolds Next.js 15 + infra.
-- **Existing repo** → `adopt` vendors matching governance rules (non-destructive); `inspect` previews it read-only.
-- **Empty capability** → `recommend-stack` → `install-stack add`.
-- **In-use stack** → `stack-assess` (score) → keep / `install-stack upgrade` / replace.
+- **New project (empty dir)** → `recommend-stack` (greenfield) recommends the **framework + whole stack** from your requirements (signals: external → compatibility with the chosen stack → reputation) → scaffold with the framework's **official create tool** → `adopt` governance → install the chosen capabilities (Next.js preset recipes, or `install-stack add` for other frameworks / non-default picks).
+- **Existing repo** → `adopt` vendors matching rules (`inspect` previews read-only) → empty capabilities via `recommend-stack`, in-use stacks via `stack-assess`.
 - **Replacement** runs via `install-stack replace` only when `risk=low` (stateless + low blast + tests); otherwise reported only. Stateful (db/auth/payments) replacements and data migrations are never executed.
 - **Secrets** → `setup-secrets` injects keys without exposing them to the AI.
 
@@ -377,7 +379,7 @@ Then in the session:
 I want to start a new project — a mobile web app for ...
 ```
 
-The `new-project-bootstrap` skill activates after `brainstorming` confirms scope. It runs 11 deterministic steps and verifies with lint + tests + build + E2E.
+The `new-project-bootstrap` skill activates after `brainstorming` confirms scope. It interviews you for requirements, calls `recommend-stack` (greenfield) to recommend the **framework + whole stack** (weighted by your requirements and inter-stack compatibility), scaffolds with the framework's official create tool, applies governance (adopt), installs the chosen capabilities, and verifies with lint + tests + build + E2E. Next.js gets a rich preset; other frameworks use the generic install path.
 
 To force-trigger if auto-activation misses:
 ```
