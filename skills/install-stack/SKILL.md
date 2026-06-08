@@ -37,7 +37,7 @@ description: Guided installation of a NEW stack into an existing project for an 
 ```bash
 cd "<대상 repo>" && git rev-parse --is-inside-work-tree && git status --porcelain
 ```
-- git repo가 아니면 → `git init` 제안 또는 중단(롤백 불가 경고).
+- git repo가 아니면 → `git init` 제안 또는 중단(롤백 불가 경고). `git init` 직후엔 베이스라인 커밋을 먼저 만들어 롤백 기준점을 확보한다.
 - 출력이 비어있지 않으면(더러움) → **중단**하고 사용자에게 커밋/스태시를 요청한다. 워킹트리가 깨끗해진 뒤 진행.
 - 깨끗하면(권장) 전용 브랜치를 만들어 작업: `git checkout -b chore/install-<stack>` (변경을 격리·롤백 쉽게).
 
