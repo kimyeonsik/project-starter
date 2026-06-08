@@ -35,8 +35,9 @@ export const STACK_PACKAGES = {
   clerk: ['@clerk/'],
   lucia: ['lucia'],
   auth0: ['@auth0/'],
-  stripe: ['stripe'],
+  stripe: ['stripe', '@stripe/'],
   toss: ['@tosspayments/'],
+  paddle: ['@paddle/'],
   'github-actions': [],
 };
 
@@ -55,6 +56,7 @@ export function pickVersion(deps, stack) {
 }
 
 // 텍스트가 stack 의 패키지를 import/require 하는가 (정규식, 정확/서브패스/스코프prefix).
+// 주의: side-effect import (import 'pkg')는 의도적으로 미감지 — blast radius는 버킷이라 영향 작음(v1).
 export function fileImportsStack(text, stack) {
   const patterns = STACK_PACKAGES[stack] || [];
   if (!patterns.length) return false;

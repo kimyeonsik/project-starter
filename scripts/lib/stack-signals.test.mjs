@@ -26,6 +26,12 @@ test('pickVersion returns null for file-only stacks (no packages)', () => {
   assert.equal(pickVersion({ anything: '1.0.0' }, 'd1'), null);
 });
 
+test('pickVersion matches stripe scope packages (@stripe/)', () => {
+  assert.equal(pickVersion({ 'stripe': '14.0.0' }, 'stripe'), '14.0.0');
+  assert.equal(pickVersion({ '@stripe/elements': '1.0.0' }, 'stripe'), '1.0.0');
+  assert.equal(pickVersion({ '@paddle/paddle-js': '1.2.0' }, 'paddle'), '1.2.0');
+});
+
 test('STACK_PACKAGES covers the common named stacks', () => {
   for (const s of ['nextjs','drizzle','vitest','playwright','sentry','amplitude','tailwind','vercel','resend','claude-api']) {
     assert.ok(s in STACK_PACKAGES, `missing STACK_PACKAGES entry: ${s}`);
@@ -70,10 +76,13 @@ function mkFixture() {
   fs.writeFileSync(path.join(dir, 'src', 'db.ts'), `import {drizzle} from 'drizzle-orm'`);
   fs.mkdirSync(path.join(dir, 'node_modules', 'junk'), { recursive: true });
   fs.writeFileSync(path.join(dir, 'node_modules', 'junk', 'x.js'), `import 'next/server'`);
+  // .next 빌드 산출물도 스킵되어야 함 (with-binding import 이라 매칭 자체는 가능)
+  fs.mkdirSync(path.join(dir, '.next', 'server'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '.next', 'server', 'chunk.js'), `import x from 'next/server'`);
   return dir;
 }
 
-test('inUseSignals: version + usage + blast, skips node_modules', () => {
+test('inUseSignals: version + usage + blast, skips node_modules and .next', () => {
   const dir = mkFixture();
   const detected = [
     { stack: 'nextjs', capability: 'framework', ruleStatus: 'named' },
