@@ -10,9 +10,17 @@ Designed to replicate a consistent dev environment across machines in one comman
 
 ## What It Sets Up
 
-- **Global rules** (`~/.claude/rules/`): language policy, Agent Teams workflow, skill auto-activation matrix, git workflow (branching/commits/PR), ADR discipline, security baseline
-- **Stack opt-in rules** (`~/.claude/rules/stacks/`): Next.js, Supabase, Vercel, Cloudflare, Playwright, Vitest, Claude API, Sentry, Amplitude, Tailwind + shadcn/ui, Resend, GitHub Actions
-- **Bootstrap skill** (`~/.agents/skills/new-project-bootstrap/`): one-prompt new project setup with Next.js 15 + TypeScript + pnpm + Supabase + Sentry + Amplitude + Vitest + Playwright + GitHub Actions CI
+- **Core rules** (`.claude/rules/`): language policy, Agent Teams workflow, skill auto-activation, git workflow (branching/commits/PR), ADR discipline, security baseline.
+- **Stack rules**: **named** stacks (Next.js, Supabase, Drizzle, D1, Vercel, Cloudflare, Playwright, Vitest, Claude API, Sentry, Amplitude, Tailwind + shadcn/ui, Resend, GitHub Actions) **plus generic capability rules** (framework, database, auth, payments, hosting, email, ai, …) that cover any stack without a named rule.
+- **Skills** (`.claude/skills/` or `~/.agents/skills/`):
+  - `new-project-bootstrap` — one-prompt new project (Next.js 15 + TypeScript + infra)
+  - `adopt-existing-project` / `inspect-project` — apply governance to an existing repo (non-destructive) / read-only preview
+  - `recommend-stack` / `stack-assess` — advise what to ADD for empty capabilities / score in-use stacks
+  - `install-stack` — execute **add · upgrade · replace** (code changes, gated)
+  - `setup-secrets` — inject API keys without exposing them to the AI
+- **Slash commands + a plain-Node terminal CLI** for the non-AI parts (see **Commands**).
+
+See **[Stack lifecycle](#stack-lifecycle)** for how these fit together.
 
 ## Which path? — New project vs Existing project
 
@@ -27,6 +35,49 @@ Both paths first install project-starter's rules and skills (see **Install**). T
 
 - **New** → start a Claude session in the empty dir and trigger the bootstrap (see *New project — bootstrap*).
 - **Existing** → in the repo, ask Claude to adopt project-starter (the *adopt-existing-project* skill).
+
+## Stack lifecycle
+
+Two tiers: **advisors** decide (read-only, research), the **executor** changes code (gated). Replacement is risk-gated — only a provably-safe (low-risk) swap is executed; anything stateful or unverifiable is reported, never run.
+
+```mermaid
+flowchart TD
+    repo["target repo"] --> adopt["adopt.mjs — detect + governance (no AI)<br/>emits deterministic signals"]
+    adopt --> empty{"empty<br/>capability?"}
+    adopt --> inuse{"in-use<br/>stack?"}
+
+    subgraph t1["Tier 1 · Advisors — read-only, research"]
+        rec["recommend-stack<br/>what to ADD"]
+        assess["stack-assess<br/>score → verdict"]
+    end
+
+    empty -->|yes| rec
+    inuse -->|yes| assess
+
+    assess --> keep["keep (ok)"]
+    assess --> upgrade["upgrade"]
+    assess --> repl{"replace —<br/>migrationRisk?"}
+    repl -->|"low<br/>stateless + low blast + tests"| m_replace
+    repl -->|"medium+<br/>stateful / big blast / no tests"| report["report only<br/>risk + preconditions<br/>(never executed)"]
+
+    rec -->|user picks| m_add
+    upgrade --> m_upgrade
+
+    subgraph t2["Tier 2 · Executor — changes code, gated"]
+        m_add["install-stack: add"]
+        m_upgrade["install-stack: upgrade"]
+        m_replace["install-stack: replace<br/>add + codemod + remove old"]
+    end
+
+    m_add --> gates
+    m_upgrade --> gates
+    m_replace --> gates
+    gates["gates: clean git/branch · step approval<br/>build/test parity · secrets-safe · scoped"] --> vendor["adopt re-run<br/>→ vendor rules"]
+```
+
+- **Empty capability** → `recommend-stack` → `install-stack add`
+- **In-use stack** → `stack-assess` (score) → keep / `install-stack upgrade` / replace
+- **Replacement** runs via `install-stack replace` only when `risk=low` (stateless + low blast + tests present); otherwise it is reported only. Stateful (db/auth/payments) replacements and data migrations are never executed.
 
 ## Prerequisites
 
@@ -192,7 +243,7 @@ Or pick at the install prompt.
 | Web quality | `anthropics/skills@webapp-testing`, `addyosmani/web-quality-skills@accessibility` |
 | Supabase deep | `supabase/agent-skills@supabase`, `supabase/agent-skills@supabase-postgres-best-practices` |
 
-**Minimal** — only `new-project-bootstrap` and `setup-secrets`. No external network call. Use for sandbox/CI installs or if you've already curated your skills.
+**Minimal** — installs project-starter's own skills only (new-project-bootstrap, adopt-existing-project, inspect-project, recommend-stack, stack-assess, install-stack, setup-secrets) and **no external skills**. No network call. Use for sandbox/CI installs or if you've already curated external skills.
 
 ### Failure handling
 
@@ -433,6 +484,8 @@ Beyond plain natural language, the skills/engines are invocable two ways:
 | `/adopt` | adopt into this repo (dry-run → confirm → apply) |
 | `/inspect` | read-only stack + governance-gap inspection |
 | `/recommend` | recommend stacks for empty capabilities (always-research, AI) |
+| `/assess` | score in-use stacks (security/maintenance/version/fit) → upgrade or risk-gated replace |
+| `/install` | install a chosen stack — add / upgrade / replace (low-risk); code changes under gates |
 | `/bootstrap` | start a new project (the new-project-bootstrap skill) |
 | `/secrets` | inject API keys via setup-secrets |
 
@@ -569,27 +622,37 @@ Some skills work best with MCP servers connected (Supabase, Vercel). See `docs/m
 
 ```
 project-starter/
-├── CLAUDE.md.template           # Managed block appended to ~/.claude/CLAUDE.md
+├── CLAUDE.md.template            # Managed block merged into the target CLAUDE.md
 ├── claude-rules/
-│   ├── en/                      # English language rule set
-│   ├── ko/                      # Korean language rule set
-│   └── stacks/                  # Common (English) stack rules
+│   ├── en/ · ko/                 # language rule sets (core rules)
+│   ├── stacks/                   # named stack rules (nextjs, supabase, drizzle, d1, …)
+│   └── capabilities/             # generic capability rules (auth, payments, ai, …)
 ├── skills/
-│   ├── new-project-bootstrap/   # The bootstrap skill (SKILL.md)
-│   └── setup-secrets/           # setup-secrets.mjs (engine) + .sh shim
+│   ├── new-project-bootstrap/    # new project scaffold
+│   ├── adopt-existing-project/   # adopt governance into a repo (bundles engine/)
+│   ├── inspect-project/          # read-only stack + gap inspection
+│   ├── recommend-stack/          # advise: what to ADD for empty capabilities
+│   ├── stack-assess/             # advise: score in-use stacks → verdict
+│   ├── install-stack/            # execute: add | upgrade | replace
+│   └── setup-secrets/            # safe API-key injection
+├── commands/                     # slash commands: adopt, inspect, recommend, assess, install, bootstrap, secrets
 ├── scripts/
-│   ├── lib/util.mjs             # Shared cross-platform helpers
-│   ├── install.mjs              # Installer engine (macOS / Linux / Windows)
-│   ├── uninstall.mjs            # Uninstaller engine
-│   ├── bootstrap.sh             # Remote entry — bash / WSL / Git Bash
-│   ├── bootstrap.ps1            # Remote entry — Windows / PowerShell
-│   ├── install.sh               # Thin bash shim → install.mjs
-│   ├── uninstall.sh             # Thin bash shim → uninstall.mjs
-│   └── verify.mjs               # Cross-platform lifecycle verification harness
+│   ├── lib/
+│   │   ├── stack-detect.mjs        # detect stacks from a repo
+│   │   ├── stack-signals.mjs       # in-use signals: version, usage, blast radius
+│   │   ├── migration-readiness.mjs # state-risk, readiness, migrationRisk grade
+│   │   ├── gap-analysis.mjs        # adopt/inspect report builder
+│   │   ├── vendor.mjs              # selective rule vendoring
+│   │   ├── bundle-engine.mjs       # bundles the adopt engine into the skill
+│   │   ├── registry.mjs            # SSOT lists + VERSION
+│   │   └── util.mjs                # shared helpers
+│   ├── adopt.mjs                 # adopt engine (detect → vendor → report)
+│   ├── cli.mjs                   # `project-starter` terminal CLI
+│   ├── install.mjs · update.mjs · uninstall.mjs · verify.mjs
+│   └── *.sh · bootstrap.ps1      # cross-platform entry shims
 └── docs/
-    ├── prereq.md
-    ├── mcp-setup.md
-    └── customization.md
+    ├── prereq.md · mcp-setup.md · customization.md · credential-strategy.md
+    └── superpowers/              # specs/ + plans/ (design history)
 ```
 
 ## Customization
@@ -764,18 +827,3 @@ Issues and PRs welcome. This is a personal infra toolkit so the maintainer may i
 ## License
 
 [MIT](LICENSE) © 2026 kimyeonsik
-
-## Stack lifecycle (tiers & flow)
-
-```
-T1  Advisors (read-only, research)   "decide what / whether"
-    ├─ recommend-stack : empty capability → what to ADD
-    └─ stack-assess    : in-use stack     → score → {keep · upgrade · replace}
-T2  Executor (changes code, gated)
-    └─ install-stack : add │ upgrade │ replace (low-risk only)
-Support: adopt (governance + routing) · inspect (preview) · new-project-bootstrap · setup-secrets
-```
-
-- **Empty capability** → `recommend-stack` → `install-stack add`
-- **In-use stack** → `stack-assess` (score) → keep / `install-stack upgrade` / replace
-- **Replacement** is risk-gated: if `risk=low` (stateless + low blast + has tests) it runs via `install-stack replace`; otherwise it is reported only (never executed). Stateful (db/auth/payments) replacements and data migrations are never executed.
