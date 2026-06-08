@@ -1,6 +1,6 @@
 ---
 name: install-stack
-description: Guided installation of a NEW stack into an existing project for an empty capability (analytics, error-tracking, auth, payments, email, database, test-runner, ai, hosting). Researches the official setup for THIS project's framework, synthesizes an install runbook, and executes it step-by-step with approval — then vendors the matching governance rule. Use after recommend-stack picks a tool, or when the user says "install X", "set up X", "add X to the project". This DOES modify code (deps/config/env) under strict gates. Do NOT use to replace or upgrade a stack already in use (that is out of scope this cycle).
+description: Guided installation of a NEW stack into an existing project for an empty capability (analytics, error-tracking, auth, payments, email, database, test-runner, ai, hosting). Researches the official setup for THIS project's framework, synthesizes an install runbook, and executes it step-by-step with approval — then vendors the matching governance rule. Use after recommend-stack picks a tool, or when the user says "install X", "set up X", "add X to the project". This DOES modify code (deps/config/env) under strict gates. Supports two modes: `add` (new stack) and `upgrade` (same stack, newer version). Do NOT use to REPLACE a stack with a different one (replacement is propose-only — see stack-assess).
 ---
 
 # Install Stack (guided, add)
@@ -13,9 +13,11 @@ description: Guided installation of a NEW stack into an existing project for an 
 - recommend-stack 추천에서 사용자가 스택을 고른 직후 (핸드오프)
 - "X 설치해줘 / 셋업해줘 / 프로젝트에 X 붙여줘"
 - adopt의 대화형 게이트에서 "설치 진행" 동의 시
+- stack-assess가 **upgrade** 판정을 내고 사용자가 동의했을 때 (모드 `upgrade`)
 
 ## When NOT to Use
-- **이미 쓰는 스택의 교체/업그레이드** → 이번 사이클 범위 밖 (제안만). 사용자에게 안내하고 중단.
+- **이미 쓰는 스택의 교체(다른 스택으로 전환)** → 이번 사이클 범위 밖 (제안만, `stack-assess` 참고). 안내하고 중단.
+- (업그레이드 = 같은 스택 버전업은 이 스킬의 `upgrade` 모드로 지원한다.)
 - 빈 디렉토리 신규 프로젝트 → `new-project-bootstrap`
 - 사용자가 "코드 건드리지 마" 명시
 
@@ -30,8 +32,9 @@ description: Guided installation of a NEW stack into an existing project for an 
 ## 절차
 
 ### Step 1: 입력 확정
-- 대상 스택(이름), capability, 대상 repo 경로(기본 cwd)를 확정한다.
-- 이미 그 capability를 쓰고 있으면 (교체/업그레이드) → **중단**하고 "이번 범위 밖(제안만)"임을 안내.
+- **모드**(`add` | `upgrade`), 대상 스택(이름), capability, 대상 repo 경로(기본 cwd)를 확정한다. upgrade면 **목표 버전**도.
+- `add`인데 이미 그 capability를 쓰고 있으면 → **중단**. 다른 스택으로의 교체는 범위 밖(제안만, stack-assess)임을 안내.
+- `upgrade`는 이미 쓰는 그 스택을 같은 계열 상위 버전으로 올리는 경우에만.
 
 ### Step 2: 안전 전제 (git)
 ```bash
@@ -42,14 +45,14 @@ cd "<대상 repo>" && git rev-parse --is-inside-work-tree && git status --porcel
 - 깨끗하면(권장) 전용 브랜치를 만들어 작업: `git checkout -b chore/install-<stack>` (변경을 격리·롤백 쉽게).
 
 ### Step 3: 리서치 (필수, 추측 금지)
-이 프로젝트 맥락에 맞는 **공식 설치/셋업**을 확인한다 — 프레임워크/런타임/패키지매니저를 먼저 파악(package.json, lockfile):
+이 프로젝트 맥락에 맞는 **공식 설치/셋업**(upgrade면 **업그레이드·마이그레이션 가이드/브레이킹 체인지**)을 확인한다 — 프레임워크/런타임/패키지매니저를 먼저 파악(package.json, lockfile):
 - `claude.ai Context7` MCP 또는 WebSearch로 **현행 공식 문서**의 설치 명령·설정 파일·init 코드·필요한 env·검증 방법을 수집.
 - 버전·API는 모델 지식이 아니라 **리서치 결과**를 신뢰한다(바뀜).
 - 불확실하면 추측하지 말고 사용자에게 문서/버전을 확인.
 
 ### Step 4: 런북 합성 → 프리뷰
 수집한 정보로 순서 있는 런북을 만든다:
-1. 의존성 설치 (해당 repo의 패키지매니저로)
+1. 의존성 설치(`add`) 또는 버전 범프(`upgrade`) — 해당 repo의 패키지매니저로
 2. `.env.local`에 필요한 env **자리표시자** 추가 (예: `RESEND_API_KEY=__SET_ME__`)
 3. 설정/provider/init 코드 (공식 문서 기준)
 4. 앱에 배선 (프레임워크 관례 따라)
