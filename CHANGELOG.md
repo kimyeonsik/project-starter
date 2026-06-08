@@ -6,6 +6,23 @@ adheres to [Semantic Versioning](https://semver.org/). The canonical version
 lives in `package.json` (exported as `VERSION` from `scripts/lib/registry.mjs`);
 `consistency.test.mjs` asserts the latest entry below matches it.
 
+## [0.7.0] - 2026-06-08
+
+### Added
+- **Guided stack install (`install-stack` skill + `/install`).** Installs a NEW
+  stack for an empty capability by researching the official setup for the
+  project's framework, synthesizing a runbook, and executing it step-by-step
+  with approval — then vendoring the matching rule via the adopt engine. Modifies
+  code under strict gates (explicit consent, clean git / dedicated branch,
+  per-step approval, build/test verification, scoped to the target stack). Secrets
+  stay out of the conversation (`.env.local` placeholders → `setup-secrets`).
+- **recommend-stack now hands off to install-stack** after the user picks a tool.
+- **adopt now offers an interactive gate**: after non-destructive governance, if
+  empty capabilities exist, it offers recommend → guided install (contract B).
+
+### Notes
+- Replacing/upgrading an in-use stack remains out of scope (separate cycle).
+
 ## [0.6.0] - 2026-06-08
 
 ### Added
