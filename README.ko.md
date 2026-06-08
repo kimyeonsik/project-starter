@@ -10,9 +10,17 @@
 
 ## 설치되는 것
 
-- **글로벌 규칙** (`~/.claude/rules/`): 언어 정책, Agent Teams 워크플로우, 스킬 자동 활성화 매트릭스, git 워크플로우(브랜칭/커밋/PR), ADR 규율, 보안 베이스라인
-- **스택 옵트인 규칙** (`~/.claude/rules/stacks/`): Next.js, Supabase, Vercel, Cloudflare, Playwright, Vitest, Claude API, Sentry, Amplitude, Tailwind + shadcn/ui, Resend, GitHub Actions
-- **부트스트랩 스킬** (`~/.agents/skills/new-project-bootstrap/`): Next.js 15 + TypeScript + pnpm + Supabase + Sentry + Amplitude + Vitest + Playwright + GitHub Actions CI를 프롬프트 한 번으로 셋업
+- **코어 규칙** (`.claude/rules/`): 언어 정책, Agent Teams 워크플로, 스킬 자동 활성화, git 워크플로(브랜치/커밋/PR), ADR 규율, 보안 베이스라인.
+- **스택 규칙**: **named** 스택(Next.js, Supabase, Drizzle, D1, Vercel, Cloudflare, Playwright, Vitest, Claude API, Sentry, Amplitude, Tailwind + shadcn/ui, Resend, GitHub Actions) **+ generic capability 규칙**(framework, database, auth, payments, hosting, email, ai, …) — named 규칙 없는 스택까지 커버.
+- **스킬** (`.claude/skills/` 또는 `~/.agents/skills/`):
+  - `new-project-bootstrap` — 한 번의 프롬프트로 신규 프로젝트(Next.js 15 + TypeScript + 인프라)
+  - `adopt-existing-project` / `inspect-project` — 기존 repo에 거버넌스 적용(비파괴) / read-only 미리보기
+  - `recommend-stack` / `stack-assess` — 빈 capability에 무엇을 추가할지 / 쓰는 스택 점수화
+  - `install-stack` — **add · upgrade · replace** 실행(코드 변경, 게이트)
+  - `setup-secrets` — 키를 AI에 노출하지 않고 주입
+- **슬래시 커맨드 + 순수 Node 터미널 CLI**(비-AI 부분, **명령** 참고).
+
+이들이 어떻게 맞물리는지는 **[스택 라이프사이클](#스택-라이프사이클)** 참고.
 
 ## 어디서 시작하나요? — 신규 vs 기존 프로젝트
 
@@ -27,6 +35,49 @@ project-starter는 두 가지 진입점을 제공합니다. 상황에 맞는 쪽
 
 - **신규** → 빈 디렉터리에서 Claude 세션을 시작해 부트스트랩을 트리거 (*신규 프로젝트 — 부트스트랩* 참고).
 - **기존** → 그 repo에서 Claude에게 적용 요청 (*adopt-existing-project* 스킬).
+
+## 스택 라이프사이클
+
+두 층: **어드바이저**가 결정(read-only·리서치), **실행기**가 코드 변경(게이트). 교체는 위험 등급 게이트 — 안전이 입증된(low) 교체만 실행하고, 상태있거나 검증 불가한 건 리포트만(실행 안 함).
+
+```mermaid
+flowchart TD
+    repo["대상 repo"] --> adopt["adopt.mjs — 감지 + 거버넌스 (AI 없음)<br/>결정론 신호 산출"]
+    adopt --> empty{"빈<br/>capability?"}
+    adopt --> inuse{"쓰는<br/>스택?"}
+
+    subgraph t1["T1 · 어드바이저 — read-only, 리서치"]
+        rec["recommend-stack<br/>무엇을 ADD"]
+        assess["stack-assess<br/>점수 → 판정"]
+    end
+
+    empty -->|yes| rec
+    inuse -->|yes| assess
+
+    assess --> keep["유지 (ok)"]
+    assess --> upgrade["업그레이드"]
+    assess --> repl{"교체 —<br/>migrationRisk?"}
+    repl -->|"low<br/>상태없음 + 낮은blast + 테스트"| m_replace
+    repl -->|"medium+<br/>상태있음 / 큰blast / 무테스트"| report["리포트만<br/>위험 + 전제조건<br/>(실행 안 함)"]
+
+    rec -->|사용자 선택| m_add
+    upgrade --> m_upgrade
+
+    subgraph t2["T2 · 실행기 — 코드 변경, 게이트"]
+        m_add["install-stack: add"]
+        m_upgrade["install-stack: upgrade"]
+        m_replace["install-stack: replace<br/>add + 호출부 codemod + 구스택 제거"]
+    end
+
+    m_add --> gates
+    m_upgrade --> gates
+    m_replace --> gates
+    gates["게이트: clean git/브랜치 · 단계 승인<br/>빌드/테스트 패리티 · 시크릿 안전 · 대상 한정"] --> vendor["adopt 재실행<br/>→ 규칙 vendoring"]
+```
+
+- **빈 capability** → `recommend-stack` → `install-stack add`
+- **쓰는 스택** → `stack-assess`(점수) → 유지 / `install-stack upgrade` / 교체
+- **교체**는 `risk=low`(상태없음+낮은blast+테스트)일 때만 `install-stack replace`로 실행, 그 외엔 리포트만. 상태있는(db/auth/결제) 교체·데이터 마이그레이션은 실행하지 않음.
 
 ## 사전 요구사항
 
@@ -192,7 +243,7 @@ SKILL_BUNDLE=minimal   bash ...   # 외부 스킬 전부 생략
 | 웹 품질 | `anthropics/skills@webapp-testing`, `addyosmani/web-quality-skills@accessibility` |
 | Supabase 심화 | `supabase/agent-skills@supabase`, `supabase/agent-skills@supabase-postgres-best-practices` |
 
-**Minimal** — `new-project-bootstrap`과 `setup-secrets`만. 외부 네트워크 호출 없음. 샌드박스/CI 설치나 이미 스킬을 갖춘 경우에 사용.
+**Minimal** — project-starter 자체 스킬만 설치(new-project-bootstrap, adopt-existing-project, inspect-project, recommend-stack, stack-assess, install-stack, setup-secrets) + **외부 스킬 없음**. 네트워크 호출 없음. 샌드박스/CI 설치나 외부 스킬을 이미 정리해 둔 경우에 사용.
 
 ### 실패 처리
 
@@ -432,6 +483,8 @@ PROJECT_ROOT=/path/to/your/repo node scripts/adopt.mjs --verify     # 적용 상
 | `/adopt` | 이 repo에 적용 (dry-run → 확인 → 적용) |
 | `/inspect` | read-only 스택·거버넌스 갭 점검 |
 | `/recommend` | 빈 capability에 도입할 스택 추천 (항상 리서치, AI) |
+| `/assess` | 쓰는 스택 점수화(보안/유지보수/버전/적합성) → 업그레이드 또는 위험등급 교체 |
+| `/install` | 선택한 스택 설치 — add / upgrade / replace(low); 코드 변경은 게이트 하 |
 | `/bootstrap` | 새 프로젝트 시작 (new-project-bootstrap 스킬) |
 | `/secrets` | setup-secrets로 API 키 주입 |
 
@@ -568,27 +621,37 @@ $f="$env:TEMP\setup-secrets.mjs"; irm https://raw.githubusercontent.com/kimyeons
 
 ```
 project-starter/
-├── CLAUDE.md.template           # ~/.claude/CLAUDE.md에 추가되는 관리 블록
+├── CLAUDE.md.template            # 대상 CLAUDE.md 에 병합되는 관리 블록
 ├── claude-rules/
-│   ├── en/                      # 영어 언어 규칙 세트
-│   ├── ko/                      # 한국어 언어 규칙 세트
-│   └── stacks/                  # 공통(영어) 스택 규칙
+│   ├── en/ · ko/                 # 언어별 규칙(코어 규칙)
+│   ├── stacks/                   # named 스택 규칙(nextjs, supabase, drizzle, d1, …)
+│   └── capabilities/             # generic capability 규칙(auth, payments, ai, …)
 ├── skills/
-│   ├── new-project-bootstrap/   # 부트스트랩 스킬 (SKILL.md)
-│   └── setup-secrets/           # setup-secrets.mjs (엔진) + .sh wrapper
+│   ├── new-project-bootstrap/    # 신규 프로젝트 스캐폴드
+│   ├── adopt-existing-project/   # repo에 거버넌스 적용(engine/ 번들)
+│   ├── inspect-project/          # read-only 스택·갭 점검
+│   ├── recommend-stack/          # 어드바이스: 빈 capability에 무엇을 ADD
+│   ├── stack-assess/             # 어드바이스: 쓰는 스택 점수 → 판정
+│   ├── install-stack/            # 실행: add | upgrade | replace
+│   └── setup-secrets/            # 안전한 API 키 주입
+├── commands/                     # 슬래시 커맨드: adopt, inspect, recommend, assess, install, bootstrap, secrets
 ├── scripts/
-│   ├── lib/util.mjs             # 공유 크로스플랫폼 헬퍼
-│   ├── install.mjs              # 설치기 엔진 (macOS / Linux / Windows)
-│   ├── uninstall.mjs            # 제거기 엔진
-│   ├── bootstrap.sh             # 원격 진입 — bash / WSL / Git Bash
-│   ├── bootstrap.ps1            # 원격 진입 — Windows / PowerShell
-│   ├── install.sh               # 얇은 bash wrapper → install.mjs
-│   ├── uninstall.sh             # 얇은 bash wrapper → uninstall.mjs
-│   └── verify.mjs               # 크로스플랫폼 생명주기 검증 하네스
+│   ├── lib/
+│   │   ├── stack-detect.mjs        # repo에서 스택 감지
+│   │   ├── stack-signals.mjs       # in-use 신호: 버전, 사용처, blast radius
+│   │   ├── migration-readiness.mjs # 상태위험, 준비도, migrationRisk 등급
+│   │   ├── gap-analysis.mjs        # adopt/inspect 리포트 빌더
+│   │   ├── vendor.mjs              # 선택적 규칙 vendoring
+│   │   ├── bundle-engine.mjs       # adopt 엔진을 스킬에 번들
+│   │   ├── registry.mjs            # SSOT 목록 + VERSION
+│   │   └── util.mjs                # 공용 헬퍼
+│   ├── adopt.mjs                 # adopt 엔진(감지 → vendor → 리포트)
+│   ├── cli.mjs                   # `project-starter` 터미널 CLI
+│   ├── install.mjs · update.mjs · uninstall.mjs · verify.mjs
+│   └── *.sh · bootstrap.ps1      # 크로스플랫폼 진입 셰임
 └── docs/
-    ├── prereq.md
-    ├── mcp-setup.md
-    └── customization.md
+    ├── prereq.md · mcp-setup.md · customization.md · credential-strategy.md
+    └── superpowers/              # specs/ + plans/ (설계 이력)
 ```
 
 ## 커스터마이징
@@ -763,18 +826,3 @@ Select-String "BEGIN project-starter" .\CLAUDE.md -ErrorAction SilentlyContinue
 ## 라이선스
 
 [MIT](LICENSE) © 2026 kimyeonsik
-
-## 스택 라이프사이클 (계위 & 흐름)
-
-```
-T1  어드바이저 (read-only · 리서치)   "무엇을/할지 말지 결정"
-    ├─ recommend-stack : 빈 capability → 무엇을 ADD
-    └─ stack-assess    : 쓰는 스택      → 점수 → {유지 · 업그레이드 · 교체}
-T2  실행기 (코드 변경 · 게이트)
-    └─ install-stack : add │ upgrade │ replace(low만)
-보조: adopt(거버넌스+라우팅) · inspect(미리보기) · new-project-bootstrap · setup-secrets
-```
-
-- **빈 capability** → `recommend-stack` → `install-stack add`
-- **쓰는 스택** → `stack-assess`(점수) → 유지 / `install-stack upgrade` / 교체
-- **교체**는 위험 등급 게이트: `risk=low`(상태없음+낮은blast+테스트)면 `install-stack replace` 실행, 그 외엔 위험·전제조건 리포트만(실행 안 함). 상태있는(db/auth/결제) 교체·데이터 마이그레이션은 실행하지 않는다.
