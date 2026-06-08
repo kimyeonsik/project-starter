@@ -66,7 +66,7 @@ PROJECT_ROOT="<대상 repo 절대경로>" node "<SKILL_DIR>/engine/scripts/adopt
 
 - **동의** → `stack-assess` 스킬로 평가 → 판정별:
   - **upgrade** → 동의 시 `install-stack`(`upgrade` 모드)으로 실행(계약 B 게이트).
-  - **replace-propose** → **실행 안 함.** 대안 + 영향범위 + 마이그레이션 개요만 리포트.
+  - **replace** → 위험 등급 분기: risk=low면 동의 시 `install-stack`(`replace` 모드)으로 실행, medium+면 위험·전제조건 리포트만(실행 안 함).
 - **거절** → 평가 없이 종료.
 
 > 평가(stack-assess)는 read-only다. 코드 변경은 upgrade 동의 후 install-stack 게이트 하에서만.
