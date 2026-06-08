@@ -541,17 +541,21 @@ touch CONTEXT.md docs/adr/0001-initial-stack.md
 Accepted
 
 ## Decision
-- Framework: Next.js 15 (App Router)
+(resolved 스택을 그대로 기록 — 예시는 web 기본값)
+- Framework: <resolved.framework>
 - Lang: TypeScript
 - PM: pnpm
-- DB/Auth: Supabase
-- Analytics: Amplitude
-- Crash: Sentry
-- Unit: Vitest
+- Database: <resolved.database>
+- Auth: <resolved.auth>
+- Analytics: <resolved.analytics>
+- Crash: <resolved.error-tracking>
+- Hosting: <resolved.hosting>
+- Unit: <resolved.test-runner (default Vitest)>
 - E2E: Playwright (Chromium)
+- (선택) Email/Payments/AI: <resolved에 있으면>
 
 ## Rationale
-사용자 표준 부트스트랩 스킬에 의해 결정. 변경 시 새 ADR 발행.
+recommend-stack(greenfield) 추천 + 사용자 확정. 신호 근거(요구사항/궁합)는 추천 리포트 참조. 변경 시 새 ADR 발행.
 ```
 
 ### Step 9: 프로젝트 CLAUDE.md
@@ -561,19 +565,13 @@ Accepted
 
 <1-line description>
 
-@~/.claude/rules/stacks/nextjs.md
-@~/.claude/rules/stacks/supabase.md
-@~/.claude/rules/stacks/vercel.md
-@~/.claude/rules/stacks/playwright.md
-@~/.claude/rules/stacks/vitest.md
-@~/.claude/rules/stacks/sentry.md
-@~/.claude/rules/stacks/amplitude.md
-@~/.claude/rules/stacks/tailwind.md
-@~/.claude/rules/stacks/github-actions.md
-# Optional — uncomment as needed
-# @~/.claude/rules/stacks/cloudflare.md
-# @~/.claude/rules/stacks/claude-api.md
-# @~/.claude/rules/stacks/resend.md
+(프로젝트 CLAUDE.md의 스택 import는 **adopt(Step 7.9)이 resolved 스택 기준으로 자동 생성**한다 — 손으로 고정 목록을 적지 않는다. import 경로는 project scope이므로 @.claude/rules/stacks/<resolved stack>.md. named 규칙 없는 스택은 adopt이 capability generic으로 커버하고 리포트에 권장 표기.)
+
+예 (resolved = SvelteKit + Drizzle + D1 + Sentry):
+@.claude/rules/stacks/drizzle.md
+@.claude/rules/stacks/d1.md
+@.claude/rules/stacks/sentry.md
+@.claude/rules/capabilities/framework.md   # sveltekit named 없음 → generic
 
 ## Project-Specific
 
@@ -588,7 +586,7 @@ Accepted
 ```bash
 git init
 git add .
-git commit -m "chore: initial bootstrap (Next.js + Supabase + Sentry + Amplitude + Vitest + Playwright)"
+git commit -m "chore: initial bootstrap (<resolved.framework> + resolved stack)"
 
 # 사용자 동의 시:
 gh repo create <name> --private --source=. --push
