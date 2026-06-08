@@ -261,7 +261,8 @@ Or pick at the install prompt.
 |---|---|
 | Network unreachable (`skills.sh` not pingable) | **Abort install** with clear message. Re-run with `SKILL_BUNDLE=minimal` to skip, or fix network. |
 | `npx` not available | Abort (Node is missing — install Node 20+). |
-| Individual skill removed/renamed on skills.sh | Warn, print up to 3 alternatives from `npx skills find`, continue with remaining skills. Failed skills are recorded as `external_skill_failed:` in the manifest for review. |
+| Individual skill's repo moved/renamed | Warn, then self-heal: query `npx skills find <skill>` for the canonical new home (exact name match, ranked by installs) and print a copy-paste retry command. Re-run with `SKILL_AUTOHEAL=1` to apply it automatically (off by default — installing top-ranked third-party code is opt-in). Continue with remaining skills. |
+| Individual skill genuinely removed (no match) | Warn, list what the repo actually offers, continue. Failed skills are recorded as `external_skill_failed:` in the manifest for review (resolve via the `find-skills` skill). |
 
 ### After install — managing external skills
 

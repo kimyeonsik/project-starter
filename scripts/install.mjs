@@ -37,6 +37,7 @@ import {
 import {
   CORE_RULES, ESSENTIAL_SKILLS, WEB_SKILLS, SUPABASE_SKILLS, VERSION,
 } from './lib/registry.mjs';
+import { resolveMovedSkill } from './lib/skill-resolver.mjs';
 import { bundleAdoptEngine } from './lib/bundle-engine.mjs';
 
 const REPO_DIR = path.resolve(dirOf(import.meta.url), '..');
@@ -207,16 +208,42 @@ async function checkNetwork() {
 }
 
 // Bundle entries use "owner/repo@skill"; split on the last '@'.
+// Returns { installed, suggestion }. On failure, self-heals against moved/
+// renamed repos by querying `skills find` for the canonical new home.
 function installOneExternal(spec) {
   const at = spec.lastIndexOf('@');
   const source = spec.slice(0, at);
   const skill = spec.slice(at + 1);
   if (runOk('npx', ['--yes', 'skills', 'add', source, '--skill', skill, '-g', '-y'])) {
     ok(`  ${spec}`);
-    return true;
+    return { installed: true, suggestion: null };
   }
   warn(`  ${spec} — install failed (skill may be removed/renamed, or wrong repo)`);
-  // List what the repo actually offers so the user can correct the mapping.
+
+  // Self-heal: the skill name is stable even when its repo moves/splits, so ask
+  // the registry where this exact name lives now, ranked by installs.
+  const found = capture('npx', ['--yes', 'skills', 'find', skill]);
+  const moved = found ? resolveMovedSkill(skill, found, { exclude: source }) : null;
+  if (moved) {
+    const cmd = `npx skills add ${moved} --skill ${skill} -g -y`;
+    // Auto-heal only when explicitly opted in — installing whatever the registry
+    // ranks first runs third-party code with full agent permissions.
+    if (env.SKILL_AUTOHEAL === '1') {
+      info(`    SKILL_AUTOHEAL=1 → resolving ${source} → ${moved} for ${skill}`);
+      if (runOk('npx', ['--yes', 'skills', 'add', moved, '--skill', skill, '-g', '-y'])) {
+        ok(`  ${moved}@${skill} (auto-resolved from ${source})`);
+        return { installed: true, suggestion: null };
+      }
+      warn('    auto-resolve failed; retry the suggested command manually');
+    } else {
+      console.log(`    ↻ Looks moved → ${moved}. Retry:`);
+      console.log(`      ${cmd}`);
+    }
+    return { installed: false, suggestion: cmd };
+  }
+
+  // No exact-name match anywhere — fall back to listing what the repo offers
+  // so the user (or an agent via find-skills) can correct the mapping.
   const raw = capture('npx', ['--yes', 'skills', 'add', source, '-l', '-y']);
   if (raw) {
     const available = raw
@@ -230,7 +257,7 @@ function installOneExternal(spec) {
       console.log(available.join('\n'));
     }
   }
-  return false;
+  return { installed: false, suggestion: null };
 }
 
 const installedExternal = [];
@@ -246,13 +273,24 @@ if (externalSkills.length) {
   }
   ok('Network: reachable');
   if (!which('npx')) fail('npx not found — Node.js install is incomplete');
+  const retrySuggestions = [];
   for (const sk of externalSkills) {
-    if (installOneExternal(sk)) installedExternal.push(sk);
-    else failedExternal.push(sk);
+    const res = installOneExternal(sk);
+    if (res.installed) installedExternal.push(sk);
+    else {
+      failedExternal.push(sk);
+      if (res.suggestion) retrySuggestions.push(res.suggestion);
+    }
   }
   if (failedExternal.length) {
     warn(`${failedExternal.length} skill(s) failed. The installer continues so you don't lose`);
     warn('the rest of the install. Review suggestions above and run manually if needed.');
+    if (retrySuggestions.length) {
+      console.log('');
+      info('↻ Retry moved/renamed skills (copy-paste):');
+      for (const cmd of retrySuggestions) console.log(`    ${cmd}`);
+      info('   ...or re-run with SKILL_AUTOHEAL=1 to apply these automatically.');
+    }
   }
 }
 
