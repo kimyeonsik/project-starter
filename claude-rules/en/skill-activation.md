@@ -106,10 +106,15 @@ When the project's CLAUDE.md imports a stack rule, that stack's signals cumulati
 
 | User intent | Auto chain |
 |---|---|
-| "health check", "weekly review", "code state" | `improve-codebase-architecture` (diagnose) |
+| "health check", "weekly review", "code state" (code architecture) | `improve-codebase-architecture` (diagnose) |
+| "governance check", "are rules/stacks current", "setup state", "what's missing" | `inspect-project` (adopt `--dry-run` — stack detection + rule gaps, read-only) |
 | "regularly", "every week", "scheduling" | propose `schedule` |
 | "refactor plan", "RFC" | `request-refactor-plan` |
 | "review only changed code" | `simplify` |
+
+There are **two checkup tracks** — don't conflate them:
+- **Code architecture** diagnosis → `improve-codebase-architecture` (module depth / seams)
+- **Governance / stack** check → `inspect-project`. This re-runs the **same adopt engine** that `new-project-bootstrap` (Step 7.9) runs at init, in `--dry-run` (read-only) — init and status-check share one engine, so right after bootstrap you can verify the setup is current with the identical chain.
 
 ## Auto-Activation Blocking
 

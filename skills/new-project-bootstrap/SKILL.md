@@ -512,6 +512,8 @@ PROJECT_ROOT="$(pwd)" node "<adopt-existing-project 스킬 디렉터리>/engine/
 ```
 named 규칙 없는 스택(예: sveltekit, clerk)은 capability generic으로 커버되고 리포트에 "전용 규칙 권장"으로 뜬다. (이게 신규/기존 공통 거버넌스 단계)
 
+> **같은 엔진을 init과 상태점검이 공유한다.** 여기서 호출하는 `engine/scripts/adopt.mjs`(apply 모드)를 `inspect-project`는 `--dry-run`(read-only)으로, `adopt-existing-project`는 apply로 재실행한다 — detect→gap→vendor 체인은 하나. 부트스트랩 직후라도 `inspect-project`로 셋업이 최신인지 즉시 점검할 수 있다.
+
 ### Step 8: 디렉토리 구조
 
 디렉토리/파일 생성은 Claude의 **Write 도구**로 하면 OS 무관하고 부모 디렉토리도 자동 생성된다 (아래 `CONTEXT.md` / ADR 내용을 바로 Write). 셸이 필요하면:
