@@ -106,10 +106,15 @@
 
 | 사용자 의도 | 자동 체인 |
 |---|---|
-| "헬스체크", "주간 점검", "코드 상태" | `improve-codebase-architecture` (진단) |
+| "헬스체크", "주간 점검", "코드 상태" (코드 아키텍처) | `improve-codebase-architecture` (진단) |
+| "거버넌스 점검", "규칙/스택 최신인지", "셋업 상태", "뭐가 빠졌나" | `inspect-project` (adopt `--dry-run` — 스택 감지 + 규칙 갭, read-only) |
 | "정기적으로", "매주", "스케줄링" | `schedule` 제안 |
 | "리팩토링 계획", "RFC" | `request-refactor-plan` |
 | "변경분만 점검" | `simplify` |
+
+점검은 **두 트랙**이다 — 헷갈리지 말 것:
+- **코드 아키텍처** 진단 → `improve-codebase-architecture` (모듈 깊이/seam)
+- **거버넌스/스택** 점검 → `inspect-project`. 이건 `new-project-bootstrap`(Step 7.9)이 초기화 때 돌리는 **바로 그 adopt 엔진**을 `--dry-run`(read-only)으로 재실행하는 것 — init과 상태점검이 같은 엔진을 공유하므로, 부트스트랩 직후에도 동일 체인으로 셋업이 최신인지 확인할 수 있다.
 
 ## 자동 활성화 차단 (boundary)
 

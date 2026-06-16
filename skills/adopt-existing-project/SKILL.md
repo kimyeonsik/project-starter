@@ -9,6 +9,8 @@ description: Apply project-starter governance to an EXISTING, running project wi
 
 사용자가 "이 프로젝트에 project-starter 적용해줘", "기존 repo에 규칙 입혀줘" 처럼 말하면 이 스킬로 처리한다 — **사용자가 직접 명령을 칠 필요 없다.** 이 스킬에는 실행 엔진이 함께 번들돼 있다(이 SKILL.md 옆 `engine/`).
 
+> **이 `engine/`이 공통 하네스다.** 세 경로가 같은 `adopt.mjs`를 모드만 달리해 쓴다 — `new-project-bootstrap`(Step 7.9)은 init 때 apply, 이 스킬은 기존 repo에 apply, `inspect-project`는 `--dry-run`/`--verify`(read-only). 즉 초기화와 상태점검이 하나의 detect→gap→vendor 엔진을 공유한다.
+
 ## When to Use
 - 이미 코드가 있는 repo에 규칙/거버넌스를 적용하고 싶을 때 ("적용", "입혀줘", "adopt")
 - 고객/외부 repo를 표준 기판 위로 올릴 때

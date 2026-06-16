@@ -13,6 +13,8 @@ description: Read-only inspection of a project's stack and governance gaps WITHO
 
 엔진은 형제 스킬 `adopt-existing-project` 에 번들돼 있다(클론 경로 불필요). 같은 skills 폴더의 그 스킬 디렉터리를 `<ADOPT_SKILL_DIR>` 이라 할 때 — `<ADOPT_SKILL_DIR>` 은 네가 `adopt-existing-project/SKILL.md` 를 읽어온 실제 절대경로로 치환한다.
 
+> 이 `--dry-run`은 **`new-project-bootstrap`(Step 7.9)이 초기화 때 돌리는 바로 그 adopt 엔진**의 read-only 모드다. init과 상태점검이 하나의 detect→gap→vendor 체인을 공유하므로, 부트스트랩 직후/정기 점검에서 동일 엔진으로 셋업이 최신인지 확인한다.
+
 ## 점검 (적용 전, read-only)
 ```bash
 PROJECT_ROOT="<대상 repo 절대경로>" node "<ADOPT_SKILL_DIR>/engine/scripts/adopt.mjs" --dry-run
